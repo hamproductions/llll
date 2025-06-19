@@ -1,0 +1,37 @@
+{
+  "title": "Link! Like! LoveLive! Chart Viewer",
+  "description": "Rhythm game LFG?",
+  "site_name": "L!L!LL! Chart",
+  "save": "Save",
+  "cancel": "Cancel",
+  "back_to_list": "Back to List",
+  "save_image": "Save Image",
+  "open_image_new_tab": "Open in New Tab",
+  "navigation": { "home": "Home" },
+  "fever_length": "Fever",
+  "seconds": "seconds",
+  "song_table": {
+    "name": "Name",
+    "description": "Description",
+    "duration": "Duration",
+    "normal": "NORMAL",
+    "hard": "HARD",
+    "expert": "EXPERT",
+    "master": "MASTER"
+  },
+  "footer": {
+    "created_by": "Created by",
+    "footer_text": "Oops, accidentally made it",
+    "source_code": "Feedback/ Requests are welcomed on "
+  },
+  "toast": {},
+  "error_page": {
+    "title": "Oopsie",
+    "text": "Sometimes refreshing the page fix it, Clearing the data might also fix it too. If it doesn't ping ",
+    "discord_link": "@hamp on Discord",
+    "to_fix_it": " to fix it.",
+    "copy": "Copy Error Message",
+    "reload": "Reload Page",
+    "clear": "Clear Data and Reload Page"
+  }
+}

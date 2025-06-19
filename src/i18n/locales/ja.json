@@ -1,0 +1,37 @@
+{
+  "title": "リンク！ライク！ラブライブ！ 譜面",
+  "description": "音ゲーキタァー",
+  "site_name": "リンクラ譜面",
+  "save": "保存",
+  "cancel": "キャンセル",
+  "back_to_list": "一覧へ戻る",
+  "save_image": "画像を保存",
+  "open_image_new_tab": "新しいタブで開く",
+  "navigation": { "home": "ホーム" },
+  "fever_length": "フィーバー",
+  "seconds": "秒",
+  "song_table": {
+    "name": "曲名",
+    "description": "種別",
+    "duration": "秒数",
+    "normal": "NORMAL",
+    "hard": "HARD",
+    "expert": "EXPERT",
+    "master": "MASTER"
+  },
+  "footer": {
+    "created_by": "作者：",
+    "footer_text": "作っちゃった",
+    "source_code": "要望などはgithubへどうぞ: "
+  },
+  "toast": {},
+  "error_page": {
+    "title": "あっちゃー",
+    "text": "ページを再読み込みすると大体直りましたし、データをクリアして再読み込みするのもたまに治せます。 直さない場合は",
+    "discord_link": "Discordで@hamp",
+    "to_fix_it": "に連絡してください。",
+    "copy": "エラーメッセージをコピー",
+    "reload": "再読み込み",
+    "clear": "データをクリアして際読み込み"
+  }
+}
