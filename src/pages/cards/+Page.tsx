@@ -9,7 +9,7 @@ import { Link } from '~/components/ui/link';
 import { Table } from '~/components/ui/table';
 import { createListCollection, Select } from '~/components/ui/select';
 import { Input } from '~/components/ui/input';
-import { getCardUrl } from '~/utils/assets';
+import { getCardUrl, getPicUrl } from '~/utils/assets';
 
 export function Page() {
   const { t } = useTranslation();
@@ -174,7 +174,25 @@ export function Page() {
                   </Select.Item>
                   {uniqueRarities.items.map((r) => (
                     <Select.Item key={r.value} item={r}>
-                      <Select.ItemText>{r.label}</Select.ItemText>
+                      <Select.ItemText>
+                        <HStack>
+                          <styled.object
+                            data={getPicUrl(r.value ?? 'mob', 'charaSymbol')}
+                            type="image/webp"
+                            objectFit="contain"
+                            maxWidth="28px"
+                            maxHeight="28px"
+                          >
+                            <styled.img
+                              src={getPicUrl('mob', 'charaSymbol')}
+                              alt={`Style`}
+                              objectFit="contain"
+                              maxHeight="28px"
+                            />
+                          </styled.object>
+                          <Text>{r.label}</Text>
+                        </HStack>
+                      </Select.ItemText>
                     </Select.Item>
                   ))}
                 </Select.ItemGroup>
@@ -281,9 +299,32 @@ export function Page() {
                         {card.name}
                       </Link>
                     </Table.Cell>
-                    <Table.Cell>{card.description}</Table.Cell>
+                    <Table.Cell>
+                      <HStack>
+                        <styled.object
+                          data={getPicUrl(card.charactersId?.toString() ?? 'mob', 'charaSymbol')}
+                          type="image/webp"
+                          objectFit="contain"
+                          maxWidth="28px"
+                          maxHeight="28px"
+                        >
+                          <styled.img
+                            src={getPicUrl('mob', 'charaSymbol')}
+                            alt={`Style`}
+                            objectFit="contain"
+                            maxHeight="28px"
+                          />
+                        </styled.object>
+                        <Text>{card.description}</Text>
+                      </HStack>
+                    </Table.Cell>
                     <Table.Cell textAlign="center">
-                      <Text fontSize="sm">{card.style ?? '-'}</Text>
+                      <styled.img
+                        src={getPicUrl(card.style?.toString() ?? '0', 'styleIcon')}
+                        alt={`Style`}
+                        objectFit="contain"
+                        maxHeight="28px"
+                      />
                     </Table.Cell>
                   </Table.Row>
                 ))}

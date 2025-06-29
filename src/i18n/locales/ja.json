@@ -33,5 +33,27 @@
     "copy": "エラーメッセージをコピー",
     "reload": "再読み込み",
     "clear": "データをクリアして際読み込み"
-  }
+  },
+  "limit_break": "特訓 {{level}}回目",
+  "rarity": "レアリティ",
+  "style": "スタイル",
+  "mood": "ムード",
+  "special_appeal_info": "スペシャルアピール情報",
+  "normal_skill_info": "スキル情報",
+  "attribute_skill_title": "属性スキル情報",
+  "level_value": "レベル {{value}}",
+  "select_skill_level": "スキルレベルを選択",
+  "select_level": "レベルを選択",
+  "skill_level": "スキルレベル",
+  "skill_cost": "AP",
+  "special_appeal_level_up_materials": "スペシャルアピールレベルアップ素材",
+  "normal_skill_level_up_materials": "スキルレベルアップ素材",
+  "material": "素材",
+  "quantity": "数量",
+  "limit_break_materials": "特訓素材",
+  "style_movies": "スタイルムービー",
+  "style_voices": "スタイルボイス",
+  "limit_break_material_rates": "特訓素材レート",
+  "limit_break_level": "特訓レベル",
+  "material_id": "素材ID"
 }

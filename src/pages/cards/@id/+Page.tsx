@@ -92,9 +92,11 @@ export function Page() {
           {cardDataList.length > 1 && (
             <LimitBreakSelector
               collection={limitBreakOptions}
-              value={[String(selectedLimitBreakIndex)]}
-              onValueChange={(details) => setSelectedLimitBreakIndex(Number(details.value))}
-              t={t}
+              value={String(selectedLimitBreakIndex)}
+              onValueChange={(details) => {
+                console.log(details);
+                setSelectedLimitBreakIndex(Number(details.value));
+              }}
             />
           )}
 

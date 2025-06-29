@@ -33,5 +33,27 @@
     "copy": "Copy Error Message",
     "reload": "Reload Page",
     "clear": "Clear Data and Reload Page"
-  }
+  },
+  "limit_break": "Limit Break {{level}}",
+  "rarity": "Rarity",
+  "style": "Style",
+  "mood": "Mood",
+  "special_appeal_info": "Special Appeal Info",
+  "normal_skill_info": "Skill Info",
+  "attribute_skill_title": "Attribute Skill Info",
+  "level_value": "Level {{value}}",
+  "select_skill_level": "Select Skill Level",
+  "select_level": "Select Level",
+  "skill_level": "Skill Level",
+  "skill_cost": "AP",
+  "special_appeal_level_up_materials": "Special Appeal Level Up Materials",
+  "normal_skill_level_up_materials": "Skill Level Up Materials",
+  "material": "Material",
+  "quantity": "Quantity",
+  "limit_break_materials": "Limit Break Materials",
+  "style_movies": "Style Movies",
+  "style_voices": "Style Voices",
+  "limit_break_material_rates": "Limit Break Material Rates",
+  "limit_break_level": "Limit Break Level",
+  "material_id": "Material ID"
 }

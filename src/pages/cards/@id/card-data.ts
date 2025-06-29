@@ -362,7 +362,7 @@ export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, card
     allFetchedSkillsForSeries: new Map(),
     allFetchedParamsTsv: new Map(),
     db,
-    maxDepth: 5
+    maxDepth: 10
   };
 
   const initialSeriesToPrefetch = new Set<number>();
