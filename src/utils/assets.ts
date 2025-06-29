@@ -30,3 +30,7 @@ export const getPicUrl = (
 export const getAlbumArtPublicPath = (songId: number | string): string => {
   return getAssetUrl(join('album-art', `image_music_thumbnail_${songId}.webp`));
 };
+
+export const getCardUrl = (id: number, variantId: string): string => {
+  return getAssetUrl(join(`cards/${id}/images`, `image_card_full_${variantId}.webp`));
+};

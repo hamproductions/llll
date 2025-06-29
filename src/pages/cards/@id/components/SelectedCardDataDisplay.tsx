@@ -20,12 +20,12 @@ export function SelectedCardDataDisplay({ selectedCardData, t }: SelectedCardDat
         {t('mood')}: {selectedCardData.mood}
       </Text>
       <SkillInfoDisplay
-        skillInfo={selectedCardData.normalSkillInfo}
-        title={t('normal_skill_info')}
-      />
-      <SkillInfoDisplay
         skillInfo={selectedCardData.specialAppealInfo}
         title={t('special_appeal_info')}
+      />
+      <SkillInfoDisplay
+        skillInfo={selectedCardData.normalSkillInfo}
+        title={t('normal_skill_info')}
       />
       <SkillInfoDisplay
         title={t('attribute_skill_title', 'Attribute Skill Info')}

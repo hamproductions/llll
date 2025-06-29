@@ -9,9 +9,10 @@ import { Text } from '~/components/ui/text';
 interface SkillInfoDisplayProps {
   skillInfo?: SkillSeriesDetails;
   title: string;
+  showEffectDetails?: boolean;
 }
 
-function SkillInfoDisplay({ skillInfo, title }: SkillInfoDisplayProps) {
+function SkillInfoDisplay({ skillInfo, title, showEffectDetails = false }: SkillInfoDisplayProps) {
   const { t } = useTranslation();
   const [selectedSkillLevel, setSelectedSkillLevel] = useState<number | undefined>(undefined);
 
@@ -45,6 +46,34 @@ function SkillInfoDisplay({ skillInfo, title }: SkillInfoDisplayProps) {
 
   const selectedSkill = skillInfo?.skills.find((skill) => skill.skillLevel === selectedSkillLevel);
 
+  const hasAnySkillContent = useMemo(() => {
+    if (!selectedSkill) return false;
+
+    // Check for description content
+    if (selectedSkill.description && selectedSkill.description.trim() !== '') return true;
+
+    // Check if any effect would render
+    const effectsToRender = selectedSkill.effects.filter((effect) => {
+      const hasDetailsToShow = showEffectDetails || effect.details.length > 0;
+      if (!hasDetailsToShow) return false; // Effect itself won't render
+
+      // Check if any of the effect's details would render
+      const detailsToRender = effect.details.filter((detail) => {
+        // This is a simplified check, ideally RecursiveSkillEffectDisplay would expose a way to check this
+        // For now, we assume if showEffectDetails is true or detail has sub-content, it will render
+        return (
+          showEffectDetails ||
+          detail.subEffect ||
+          detail.subSeries ||
+          (detail.subParamsEffects && detail.subParamsEffects.length > 0)
+        );
+      });
+      return detailsToRender.length > 0;
+    });
+
+    return effectsToRender.length > 0;
+  }, [selectedSkill, showEffectDetails]);
+
   if (!skillInfo) return null;
 
   return (
@@ -52,7 +81,9 @@ function SkillInfoDisplay({ skillInfo, title }: SkillInfoDisplayProps) {
       <Text fontSize="xl" fontWeight="bold">
         {title}
       </Text>
-      <Text>{skillInfo.series.name}</Text>
+      {skillInfo.series.name && skillInfo.series.name.trim() !== '' && (
+        <Text>{skillInfo.series.name}</Text>
+      )}
 
       {availableSkillLevels.items.length > 0 && (
         <Box mb="2">
@@ -89,40 +120,50 @@ function SkillInfoDisplay({ skillInfo, title }: SkillInfoDisplayProps) {
         </Box>
       )}
 
-      {selectedSkill && (
+      {selectedSkill && hasAnySkillContent && (
         <Box key={selectedSkill.id} borderRadius="md" borderWidth="1px" mb="2" p="3">
           <Text fontSize="md" fontWeight="semibold">
             {t('skill_level')}: {selectedSkill.skillLevel} | {t('skill_cost')}:{' '}
             {selectedSkill.skillCost}
           </Text>
-          <Text mb="2" fontSize="sm" whiteSpace="pre-line">
-            {(selectedSkill.description ?? '').split('$').map((part, partIndex) =>
-              partIndex % 2 === 1 ? (
-                <Text as="span" key={partIndex} fontWeight="bold">
-                  {part}
-                </Text>
-              ) : (
-                <Text as="span" key={partIndex}>
-                  {part}
-                </Text>
-              )
-            )}
-          </Text>
-          {selectedSkill.effects.map((effect) => (
-            <Box key={effect.id} borderLeftWidth="2px" borderColor="accent.default" mt="2" pl="2">
-              <Text fontSize="sm" fontWeight="medium">
-                {t('effect_id')}: {effect.id} | {t('action_type')}: {effect.actionType} |{' '}
-                {t('order_id')}: {effect.orderId}
-              </Text>
-              {effect.details.map((detail, idx) => (
-                <RecursiveSkillEffectDisplay
-                  key={`${detail.id}-${idx}`}
-                  detail={detail}
-                  level={1}
-                />
-              ))}
-            </Box>
-          ))}
+          {selectedSkill.description && selectedSkill.description.trim() !== '' && (
+            <Text mb="2" fontSize="sm" whiteSpace="pre-line">
+              {(selectedSkill.description ?? '').split('$').map((part, partIndex) =>
+                partIndex % 2 === 1 ? (
+                  <Text as="span" key={partIndex} fontWeight="bold">
+                    {part}
+                  </Text>
+                ) : (
+                  <Text as="span" key={partIndex}>
+                    {part}
+                  </Text>
+                )
+              )}
+            </Text>
+          )}
+          {selectedSkill.effects.map((effect) => {
+            const hasDetailsToShow = showEffectDetails || effect.details.length > 0;
+            if (!hasDetailsToShow) return null; // Don't render the Box if no content
+
+            return (
+              <Box key={effect.id} borderLeftWidth="2px" borderColor="accent.default" mt="2" pl="2">
+                {showEffectDetails && (
+                  <Text fontSize="sm" fontWeight="medium">
+                    {t('effect_id')}: {effect.id} | {t('action_type')}: {effect.actionType} |{' '}
+                    {t('order_id')}: {effect.orderId}
+                  </Text>
+                )}
+                {effect.details.map((detail, idx) => (
+                  <RecursiveSkillEffectDisplay
+                    key={`${detail.id}-${idx}`}
+                    detail={detail}
+                    level={1}
+                    showEffectDetails={showEffectDetails}
+                  />
+                ))}
+              </Box>
+            );
+          })}
         </Box>
       )}
     </Stack>

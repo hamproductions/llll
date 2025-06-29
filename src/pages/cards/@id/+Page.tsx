@@ -9,7 +9,8 @@ import { SelectedCardDataDisplay } from './components/SelectedCardDataDisplay';
 import { AdditionalInfoSection } from './components/AdditionalInfoSection';
 import { SkillMaterialsSection } from './components/SkillMaterialsSection';
 import { createListCollection } from '~/components/ui/select';
-import { Box, Stack } from 'styled-system/jsx';
+import { Box, Stack, styled } from 'styled-system/jsx';
+import { getCardUrl } from '~/utils/assets';
 
 export function Page() {
   const { t } = useTranslation();
@@ -61,12 +62,38 @@ export function Page() {
           description={basicCardInfo.description ?? undefined}
           t={t}
         />
-        <Box w="full" mt="4">
+        <Stack gap="2" w="full" mt="4">
+          {selectedCardData.cardSeriesId && (
+            <Stack direction={{ md: 'row' }} w="full" maxH="300px">
+              <Box>
+                <styled.img
+                  src={getCardUrl(
+                    selectedCardData.cardSeriesId,
+                    `${selectedCardData.cardSeriesId}0`
+                  )}
+                  alt={`${selectedCardData.name} Unawakened`}
+                  h="full"
+                  mx="auto"
+                />
+              </Box>
+              <Box>
+                <styled.img
+                  src={getCardUrl(
+                    selectedCardData.cardSeriesId,
+                    `${selectedCardData.cardSeriesId}1`
+                  )}
+                  alt={`${selectedCardData.name} Awakened`}
+                  h="full"
+                  mx="auto"
+                />
+              </Box>
+            </Stack>
+          )}
           {cardDataList.length > 1 && (
             <LimitBreakSelector
               collection={limitBreakOptions}
               value={[String(selectedLimitBreakIndex)]}
-              onValueChange={(details) => setSelectedLimitBreakIndex(Number(details.value[0]))}
+              onValueChange={(details) => setSelectedLimitBreakIndex(Number(details.value))}
               t={t}
             />
           )}
@@ -90,7 +117,7 @@ export function Page() {
               />
             )}
           </Stack>
-        </Box>
+        </Stack>
       </Stack>
     </>
   );

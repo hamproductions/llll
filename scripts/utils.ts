@@ -112,8 +112,8 @@ async function diffBundleTables(
 const cli = cac('asset-explorer');
 
 cli.command('diff', 'Compare current DB with a historical DB').action(async () => {
-  const dbsDir = '../../data/dbs';
-  const currentDbPath = '../../data/db.sqlite3';
+  const dbsDir = '../data/dbs';
+  const currentDbPath = '../data/db.sqlite3';
 
   try {
     const files = await fs.readdir(dbsDir);

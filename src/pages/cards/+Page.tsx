@@ -4,11 +4,12 @@ import { useData } from 'vike-react/useData';
 import type { PageData } from './+data';
 import { Text } from '~/components/ui/text';
 import { Metadata } from '~/components/layout/Metadata';
-import { Box, Stack, HStack } from 'styled-system/jsx';
+import { Box, Stack, HStack, styled } from 'styled-system/jsx';
 import { Link } from '~/components/ui/link';
 import { Table } from '~/components/ui/table';
 import { createListCollection, Select } from '~/components/ui/select';
 import { Input } from '~/components/ui/input';
+import { getCardUrl } from '~/utils/assets';
 
 export function Page() {
   const { t } = useTranslation();
@@ -243,7 +244,7 @@ export function Page() {
             <Table.Root variant="outline" size="md" w="full">
               <Table.Head>
                 <Table.Row>
-                  <Table.Header>{t('table_header_id', 'ID')}</Table.Header>
+                  <Table.Header>{t('table_header_image', 'Image')}</Table.Header>
                   <Table.Header textAlign="center">
                     {t('table_header_rarity', 'Rarity')}
                   </Table.Header>
@@ -256,13 +257,16 @@ export function Page() {
                 {filteredCards.map((card) => (
                   <Table.Row key={card.id} _hover={{ bg: 'bg.subtle' }}>
                     <Table.Cell>
-                      <Link
-                        href={`/cards/${card.cardSeriesId}`}
-                        fontWeight="semibold"
-                        _hover={{ textDecoration: 'underline' }}
-                      >
-                        {card.cardSeriesId}
-                      </Link>
+                      {card.cardSeriesId ? (
+                        <styled.img
+                          src={getCardUrl(card.cardSeriesId, `${card.cardSeriesId}1`)}
+                          alt={``}
+                          objectFit="cover"
+                          height="50px"
+                        />
+                      ) : (
+                        <></>
+                      )}
                     </Table.Cell>
                     <Table.Cell textAlign="center">
                       <Text fontSize="sm">
