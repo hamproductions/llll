@@ -35,3 +35,11 @@ export const getAlbumArtPublicPath = (songId: number | string): string => {
 export const getCardUrl = (id: number, variantId: string): string => {
   return getAssetUrl(join(`cards/${id}/images`, `image_card_full_${variantId}.webp`));
 };
+
+export const getCardAudioUrl = (id: number, type: string): string => {
+  return getAssetUrl(join(`cards/${id}/voice`, `vo_card_${id}_${type}.webm`));
+};
+
+export const getCardAudioFile = (id: number, fileName: string): string => {
+  return getAssetUrl(join(`cards/${id}/voice`, `${fileName}.webm`));
+};

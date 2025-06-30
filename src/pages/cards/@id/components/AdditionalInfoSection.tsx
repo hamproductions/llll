@@ -8,6 +8,7 @@ import { Stack } from 'styled-system/jsx';
 import { Text } from '~/components/ui/text';
 
 interface AdditionalInfoSectionProps {
+  cardId: number;
   limitBreakMaterials?: LimitBreakMaterial[];
   styleMovies?: StyleMovie[];
   styleVoices?: StyleVoice[];
@@ -16,7 +17,8 @@ interface AdditionalInfoSectionProps {
 }
 
 export function AdditionalInfoSection(props: AdditionalInfoSectionProps) {
-  const { limitBreakMaterials, styleMovies, styleVoices, limitBreakMaterialRates, t } = props;
+  const { cardId, limitBreakMaterials, styleMovies, styleVoices, limitBreakMaterialRates, t } =
+    props;
 
   return (
     <>
@@ -30,11 +32,11 @@ export function AdditionalInfoSection(props: AdditionalInfoSectionProps) {
       )}
 
       {(styleMovies?.length ?? 0) > 0 && (
-        <StyleMoviesDisplay movies={styleMovies!} title={t('style_movies')} />
+        <StyleMoviesDisplay cardId={cardId} movies={styleMovies!} title={t('style_movies')} />
       )}
 
       {(styleVoices?.length ?? 0) > 0 && (
-        <StyleVoicesDisplay voices={styleVoices!} title={t('style_voices')} />
+        <StyleVoicesDisplay cardId={cardId} voices={styleVoices!} title={t('style_voices')} />
       )}
 
       {(limitBreakMaterialRates?.length ?? 0) > 0 && (

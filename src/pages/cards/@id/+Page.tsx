@@ -142,6 +142,7 @@ export function Page() {
 
             {selectedLimitBreakIndex === 0 && (
               <AdditionalInfoSection
+                cardId={selectedCardData.cardSeriesId ?? 0}
                 limitBreakMaterials={limitBreakMaterials}
                 styleMovies={styleMovies}
                 styleVoices={styleVoices}
