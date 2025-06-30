@@ -7,7 +7,10 @@ export type {
   LimitBreakMaterialRate,
   SkillLevelUpMaterial,
   StyleMovie,
-  StyleVoice
+  StyleVoice,
+  SchoolIdolShowSkills,
+  SchoolIdolStageSkills,
+  SchoolIdolShowSkillsGroup
 } from './card-data';
 
 import type { PageContext } from 'vike/types';

@@ -55,5 +55,24 @@
   "style_voices": "Style Voices",
   "limit_break_material_rates": "Limit Break Material Rates",
   "limit_break_level": "Limit Break Level",
-  "material_id": "Material ID"
+  "material_id": "Material ID",
+  "card_details": {
+    "school_idol_show_skills": "School Idol Show Skills",
+    "skill_type": "Skill Type",
+    "skill_name": "Skill Name",
+    "skill_level": "Skill Level",
+    "skill_description": "Description",
+    "school_idol_stage_skills": "School Idol Stage Skills"
+  },
+  "skill_type": {
+    "center_skill": "Center Skill",
+    "rhythm_game_skill": "Rhythm Game Skill",
+    "center_attribute": "Center Attribute"
+  },
+  "school_idol_stage": "School Idol Stage",
+  "school_idol_show": "School Idol Show",
+  "smile": "Smile",
+  "pure": "Pure",
+  "cool": "Cool",
+  "mental": "Mental"
 }

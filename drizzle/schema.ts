@@ -1074,12 +1074,12 @@ export const costumeModels = sqliteTable('CostumeModels', {
 });
 
 export const centerattributesTsv = sqliteTable('centerattributes.tsv', {
-  f45B078F4: integer('F45b078f4'),
-  f2430Ed9C: integer('F2430ed9c'),
-  f67831650: text('F67831650'),
+  centerAttributesId: integer('F45b078f4'),
+  centerAttributesSeriesId: integer('F2430ed9c'),
+  name: text('F67831650'),
   f2F114C3D: text('F2f114c3d'),
   fd29F2B78: integer('Fd29f2b78'),
-  fd8B0251F: text('Fd8b0251f')
+  description: text('Fd8b0251f')
 });
 
 export const campaignaddrewardsTsv = sqliteTable('campaignaddrewards.tsv', {
@@ -1730,15 +1730,15 @@ export const rhythmgamehelpimagesTsv = sqliteTable('rhythmgamehelpimages.tsv', {
 });
 
 export const rhythmgameskillsTsv = sqliteTable('rhythmgameskills.tsv', {
-  fedd96Baa: integer('Fedd96baa'),
-  f658534Fe: integer('F658534fe'),
-  fe491480E: text('Fe491480e'),
-  fbcd3Ea61: integer('Fbcd3ea61'),
+  rhythmGameSkillsId: integer('Fedd96baa'),
+  rhythmGameSkillsSeriesId: integer('F658534fe'),
+  name: text('Fe491480e'),
+  skillLevel: integer('Fbcd3ea61'),
   f931E6C05: integer('F931e6c05'),
   fb3829Ee8: text('Fb3829ee8'),
   f932Af21A: integer('F932af21a'),
-  f1664900F: integer('F1664900f'),
-  f7B751386: text('F7b751386')
+  skillCost: integer('F1664900f'),
+  description: text('F7b751386')
 });
 
 export const liveCharacters = sqliteTable('LiveCharacters', {
@@ -1831,22 +1831,22 @@ export const cardDatas = sqliteTable('CardDatas', {
   attributeId: integer('AttributeId'),
   spineId: integer('SpineId'),
   f17B8B727: integer('F17b8b727'),
-  fc2Fd110A: integer('Fc2fd110a'),
-  f0E55D0E6: integer('F0e55d0e6'),
-  f3Df64B9A: integer('F3df64b9a'),
+  centerSkillSeriesId: integer('Fc2fd110a'),
+  centerAttributesId: integer('F0e55d0e6'),
+  rhythmGameSkillsSeriesId: integer('F3df64b9a'),
   fdf846Da0: integer('Fdf846da0'),
   f257Ba05B: integer('F257ba05b')
 });
 
 export const centerskillsTsv = sqliteTable('centerskills.tsv', {
-  f9C0B8Dcd: integer('F9c0b8dcd'),
-  fffd4C5Be: integer('Fffd4c5be'),
-  f8Dd61F96: text('F8dd61f96'),
-  f9Dc9A4B5: integer('F9dc9a4b5'),
+  centerSkillId: integer('F9c0b8dcd'),
+  centerSkillSeriesId: integer('Fffd4c5be'),
+  name: text('F8dd61f96'),
+  skillLevel: integer('F9dc9a4b5'),
   ff3317055: integer('Ff3317055'),
   f2Feac97D: text('F2feac97d'),
-  f097B035A: integer('F097b035a'),
-  ffaea1F05: text('Ffaea1f05')
+  skillCost: integer('F097b035a'),
+  description: text('Ffaea1f05')
 });
 
 export const liveEventsEvol = sqliteTable('LiveEventsEvol', {

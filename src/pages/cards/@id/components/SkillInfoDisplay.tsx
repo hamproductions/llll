@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SkillSeriesDetails } from '../card-data';
 import { RecursiveSkillEffectDisplay } from './RecursiveSkillEffectDisplay';
-import { Box, Stack } from 'styled-system/jsx';
+import { Box, HStack, Stack } from 'styled-system/jsx';
 import { createListCollection, Select } from '~/components/ui/select';
 import { Text } from '~/components/ui/text';
 
@@ -14,7 +14,7 @@ interface SkillInfoDisplayProps {
 
 function SkillInfoDisplay({ skillInfo, title, showEffectDetails = false }: SkillInfoDisplayProps) {
   const { t } = useTranslation();
-  const [selectedSkillLevel, setSelectedSkillLevel] = useState<number | undefined>(undefined);
+  const [selectedSkillLevel, setSelectedSkillLevel] = useState<number | undefined>(14);
 
   const availableSkillLevels = useMemo(() => {
     if (!skillInfo) return createListCollection({ items: [] });
@@ -85,8 +85,8 @@ function SkillInfoDisplay({ skillInfo, title, showEffectDetails = false }: Skill
         <Text>{skillInfo.series.name}</Text>
       )}
 
-      {availableSkillLevels.items.length > 0 && (
-        <Box mb="2">
+      {availableSkillLevels.items.length > 1 && (
+        <HStack mb="2">
           <label htmlFor={`${title.replace(/\s+/g, '-')}-skill-level-select`}>
             {t('select_skill_level')}:
           </label>
@@ -117,7 +117,7 @@ function SkillInfoDisplay({ skillInfo, title, showEffectDetails = false }: Skill
               </Select.Content>
             </Select.Positioner>
           </Select.Root>
-        </Box>
+        </HStack>
       )}
 
       {selectedSkill && hasAnySkillContent && (

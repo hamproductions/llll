@@ -55,5 +55,24 @@
   "style_voices": "スタイルボイス",
   "limit_break_material_rates": "特訓素材レート",
   "limit_break_level": "特訓レベル",
-  "material_id": "素材ID"
+  "material_id": "素材ID",
+  "card_details": {
+    "school_idol_show_skills": "スクールアイドルショーのスキル",
+    "skill_type": "スキルタイプ",
+    "skill_name": "スキル名",
+    "skill_level": "スキルレベル",
+    "skill_description": "説明",
+    "school_idol_stage_skills": "スクールアイドルステージのスキル"
+  },
+  "skill_type": {
+    "center_skill": "センタースキル",
+    "rhythm_game_skill": "リズムゲームスキル",
+    "center_attribute": "センター属性"
+  },
+  "school_idol_stage": "スクールアイドルステージ",
+  "school_idol_show": "スクールアイドルショー",
+  "smile": "スマイル",
+  "pure": "ピュア",
+  "cool": "クール",
+  "mental": "メンタル"
 }

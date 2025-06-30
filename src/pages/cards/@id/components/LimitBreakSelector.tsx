@@ -15,7 +15,7 @@ interface LimitBreakSelectorProps {
 
 export function LimitBreakSelector({ collection, value, onValueChange }: LimitBreakSelectorProps) {
   return (
-    <Flex justify="center" mb="4">
+    <Flex mb="4">
       <RadioGroup.Root value={value} onValueChange={onValueChange} orientation="horizontal">
         {collection.items.map((item) => (
           <RadioGroup.Item key={item.value} value={item.value}>

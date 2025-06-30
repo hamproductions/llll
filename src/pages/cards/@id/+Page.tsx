@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useData } from 'vike-react/useData';
 
 import type { PageData } from './+data';
 import { CardPageHeader } from './components/CardPageHeader';
-import { LimitBreakSelector } from './components/LimitBreakSelector';
 import { SelectedCardDataDisplay } from './components/SelectedCardDataDisplay';
+import { SchoolIdolShowSkillsSection } from './components/SchoolIdolShowSkillsSection';
+import { SchoolIdolStageSkillsSection } from './components/SchoolIdolStageSkillsSection';
 import { AdditionalInfoSection } from './components/AdditionalInfoSection';
 import { SkillMaterialsSection } from './components/SkillMaterialsSection';
+import { LimitBreakSelector } from './components/LimitBreakSelector';
 import { createListCollection } from '~/components/ui/select';
 import { Box, Stack, styled } from 'styled-system/jsx';
 import { getCardUrl } from '~/utils/assets';
+import { Tabs } from '~/components/ui/tabs';
 
 export function Page() {
   const { t } = useTranslation();
@@ -46,12 +49,31 @@ export function Page() {
     });
   }, [cardDataList, t]);
 
-  // Ensure selected index is valid if cardDataList changes
-  useEffect(() => {
-    if (selectedLimitBreakIndex >= cardDataList.length) {
-      setSelectedLimitBreakIndex(0);
+  const TABS = [
+    {
+      value: 'stage',
+      label: t('school_idol_stage'),
+      component: (
+        <>
+          <SchoolIdolStageSkillsSection selectedCardData={selectedCardData} />
+          <SkillMaterialsSection
+            specialAppealMaterials={specialAppealMaterials}
+            appealMaterials={appealMaterials}
+            t={t}
+          />
+        </>
+      )
+    },
+    {
+      value: 'show',
+      label: t('school_idol_show'),
+      component: (
+        <>
+          <SchoolIdolShowSkillsSection selectedCardData={selectedCardData} />
+        </>
+      )
     }
-  }, [cardDataList, selectedLimitBreakIndex]);
+  ];
 
   return (
     <>
@@ -89,25 +111,34 @@ export function Page() {
               </Box>
             </Stack>
           )}
-          {cardDataList.length > 1 && (
-            <LimitBreakSelector
-              collection={limitBreakOptions}
-              value={String(selectedLimitBreakIndex)}
-              onValueChange={(details) => {
-                console.log(details);
-                setSelectedLimitBreakIndex(Number(details.value));
-              }}
-            />
-          )}
 
-          <Stack gap="4" w="full" mt="4">
+          <Stack gap="4" borderRadius="md" borderWidth="1px" w="full" mt="4" p="4">
             <SelectedCardDataDisplay selectedCardData={selectedCardData} t={t} />
 
-            <SkillMaterialsSection
-              specialAppealMaterials={specialAppealMaterials}
-              appealMaterials={appealMaterials}
-              t={t}
-            />
+            {cardDataList.length > 1 && (
+              <LimitBreakSelector
+                collection={limitBreakOptions}
+                value={String(selectedLimitBreakIndex)}
+                onValueChange={(details) => {
+                  setSelectedLimitBreakIndex(Number(details.value));
+                }}
+              />
+            )}
+
+            <Tabs.Root defaultValue={TABS[0].value} w-full>
+              <Tabs.List>
+                {TABS.map((tab) => (
+                  <Tabs.Trigger key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </Tabs.Trigger>
+                ))}
+              </Tabs.List>
+              {TABS.map((tab) => (
+                <Tabs.Content key={tab.value} value={tab.value}>
+                  {tab.component}
+                </Tabs.Content>
+              ))}
+            </Tabs.Root>
 
             {selectedLimitBreakIndex === 0 && (
               <AdditionalInfoSection

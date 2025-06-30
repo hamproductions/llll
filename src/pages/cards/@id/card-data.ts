@@ -37,10 +37,21 @@ type PrefetchState = {
   maxDepth: number;
 };
 
-export type CardDataListItem = InferSelectModel<typeof schema.cardDatas> & {
+export type SchoolIdolStageSkills = {
   normalSkillInfo?: SkillSeriesDetails;
   specialAppealInfo?: SkillSeriesDetails;
   attributeSkillInfo?: SkillSeriesDetails;
+};
+
+export type SchoolIdolShowSkillsGroup = {
+  centerSkillInfo?: SchoolIdolShowSkills[];
+  rhythmGameSkillInfo?: SchoolIdolShowSkills[];
+  centerAttributeSkillInfo?: SchoolIdolShowSkills;
+};
+
+export type CardDataListItem = InferSelectModel<typeof schema.cardDatas> & {
+  schoolIdolStageSkills?: SchoolIdolStageSkills;
+  schoolIdolShowSkills?: SchoolIdolShowSkillsGroup;
 };
 
 export type SkillLevelUpMaterial = InferSelectModel<typeof schema.cardSkillLevelUpMaterials> & {
@@ -60,6 +71,17 @@ export type LimitBreakMaterial = {
 export type StyleMovie = InferSelectModel<typeof schema.styleMovies>;
 export type StyleVoice = InferSelectModel<typeof schema.styleVoices>;
 export type LimitBreakMaterialRate = InferSelectModel<typeof schema.limitBreakMaterialRate>;
+
+export type SchoolIdolShowSkills = {
+  card_id: number;
+  skill_type: 'center_skill' | 'rhythm_game_skill' | 'center_attribute';
+  // skill_id: number | null;
+  skill_level?: number | null;
+  skill_series_id?: number | null;
+  name: string | null;
+  description: string | null;
+  skill_cost?: number | null;
+};
 
 async function prefetchAllSkillData(initialSeriesToProcess: Set<number>, state: PrefetchState) {
   const seriesIdsToProcess = new Set<number>(initialSeriesToProcess);
@@ -377,7 +399,7 @@ export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, card
   await prefetchAllSkillData(initialSeriesToPrefetch, prefetchState);
 
   const cardDataList = await Promise.all(
-    allCardDataRaw.map((cd) => {
+    allCardDataRaw.map(async (cd) => {
       // For top-level skill series, do not pass filterToSkillLevel.
       // This ensures they contain skills of all levels for SkillInfoDisplay to use.
       // The filtering of sub-series will happen based on the selected skill's level later.
@@ -397,7 +419,32 @@ export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, card
         cd.attributeId !== null && cd.attributeId !== undefined
           ? buildSkillSeriesFromPrefetched(cd.attributeId, prefetchState, 0, undefined)
           : undefined;
-      return { ...cd, normalSkillInfo, specialAppealInfo, attributeSkillInfo };
+      const showSkills = await getSchoolIdolShowSkills(db, cd.id);
+      const centerSkillInfo = showSkills.filter((skill) => skill.skill_type === 'center_skill');
+      const rhythmGameSkillInfo = showSkills.filter(
+        (skill) => skill.skill_type === 'rhythm_game_skill'
+      );
+      const centerAttributeSkillInfo = showSkills.find(
+        (skill) => skill.skill_type === 'center_attribute'
+      );
+
+      const schoolIdolStageSkills = {
+        normalSkillInfo,
+        specialAppealInfo,
+        attributeSkillInfo
+      };
+
+      const schoolIdolShowSkills = {
+        centerSkillInfo,
+        rhythmGameSkillInfo,
+        centerAttributeSkillInfo
+      };
+
+      return {
+        ...cd,
+        schoolIdolStageSkills,
+        schoolIdolShowSkills
+      };
     })
   );
   const items1 = aliasedTable(schema.items, 'items1');
@@ -461,4 +508,64 @@ export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, card
     styleVoices: styleVoicesData,
     limitBreakMaterialRates
   } as const;
+}
+
+export async function getSchoolIdolShowSkills(
+  db: BunSQLiteDatabase<typeof schema>,
+  cardId: number
+): Promise<SchoolIdolShowSkills[]> {
+  const centerSkills = await db
+    .selectDistinct({
+      card_id: schema.cardDatas.id,
+      skill_type: sql<'center_skill'>`'center_skill'`,
+      // skill_id: schema.centerskillsTsv.centerSkillId,
+      skill_level: schema.centerskillsTsv.skillLevel,
+      skill_series_id: schema.centerskillsTsv.centerSkillSeriesId,
+      name: schema.centerskillsTsv.name,
+      description: schema.centerskillsTsv.description
+    })
+    .from(schema.cardDatas)
+    .innerJoin(
+      schema.centerskillsTsv,
+      eq(schema.cardDatas.centerSkillSeriesId, schema.centerskillsTsv.centerSkillSeriesId)
+    )
+    .where(eq(schema.cardDatas.id, cardId));
+
+  const rhythmGameSkills = await db
+    .selectDistinct({
+      card_id: schema.cardDatas.id,
+      skill_type: sql<'rhythm_game_skill'>`'rhythm_game_skill'`,
+      // skill_id: schema.rhythmgameskillsTsv.rhythmGameSkillsId,
+      skill_level: schema.rhythmgameskillsTsv.skillLevel,
+      skill_series_id: schema.rhythmgameskillsTsv.rhythmGameSkillsSeriesId,
+      name: schema.rhythmgameskillsTsv.name,
+      description: schema.rhythmgameskillsTsv.description,
+      skill_cost: schema.rhythmgameskillsTsv.skillCost
+    })
+    .from(schema.cardDatas)
+    .innerJoin(
+      schema.rhythmgameskillsTsv,
+      eq(
+        schema.cardDatas.rhythmGameSkillsSeriesId,
+        schema.rhythmgameskillsTsv.rhythmGameSkillsSeriesId
+      )
+    )
+    .where(eq(schema.cardDatas.id, cardId));
+
+  const centerAttributes = await db
+    .selectDistinct({
+      card_id: schema.cardDatas.id,
+      skill_type: sql<'center_attribute'>`'center_attribute'`,
+      // skill_id: schema.centerattributesTsv.centerAttributesId,
+      name: schema.centerattributesTsv.name,
+      description: schema.centerattributesTsv.description
+    })
+    .from(schema.cardDatas)
+    .innerJoin(
+      schema.centerattributesTsv,
+      eq(schema.cardDatas.centerAttributesId, schema.centerattributesTsv.centerAttributesSeriesId)
+    )
+    .where(eq(schema.cardDatas.id, cardId));
+
+  return [...centerSkills, ...rhythmGameSkills, ...centerAttributes];
 }
