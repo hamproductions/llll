@@ -9,7 +9,7 @@ export function Head() {
   const cardData = data.cardDataList?.[0];
 
   const title = cardData?.name || t('card_details');
-  const description = cardData?.descrption || t('card_details_description_fallback');
+  const description = cardData?.description || t('card_details_description_fallback');
 
   return <Metadata title={`${title} | ${t('site_name')}`} description={description} />;
 }

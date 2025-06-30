@@ -34,9 +34,11 @@ function StyleVoicesDisplay({ cardId, voices, title }: StyleVoicesDisplayProps) 
                 {voice.releaseConditionText}
               </Text>
             </Box>
-            <audio controls src={getCardAudioFile(cardId, voice.voiceName)}>
-              Your browser does not support the audio element.
-            </audio>
+            {voice.voiceName && (
+              <audio controls src={getCardAudioFile(cardId, voice.voiceName)}>
+                Your browser does not support the audio element.
+              </audio>
+            )}
           </HStack>
         );
       })}

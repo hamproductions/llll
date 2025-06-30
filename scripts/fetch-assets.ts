@@ -1,5 +1,3 @@
-// /asset-explorer/src/scripts/fetch-assets.ts
-
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { readableStreamToArrayBuffer } from 'bun';
@@ -12,7 +10,8 @@ async function runCommand(command: string, args: string[], cwd?: string, logPref
     cwd: cwd || process.cwd(),
     stdout: 'pipe',
     stderr: 'pipe',
-    env: { ...process.env, PYTHONUNBUFFERED: '1' } // Useful for python scripts
+    //@ts-expect-error env
+    env: { ...process.env, PYTHONUNBUFFERED: '1' } // Useful for python scripts as any
   });
 
   const stdoutBuffer = await readableStreamToArrayBuffer(proc.stdout);
@@ -20,7 +19,7 @@ async function runCommand(command: string, args: string[], cwd?: string, logPref
   const stdout = new TextDecoder().decode(stdoutBuffer);
   const stderr = new TextDecoder().decode(stderrBuffer);
 
-  const exitCode = proc.exitCode;
+  // const exitCode = proc.exitCode;
 
   if (stdout.trim()) {
     console.log(`${logPrefix || '[CMD]'} STDOUT:\n${stdout.trim()}`);
@@ -311,8 +310,8 @@ async function processDeckFrameCharaImage(
   }
 }
 
-let currentCardTmpRoot: string | null = null;
 let currentTmpBaseDir: string | null = null;
+let currentCardTmpRoot: string | null = null;
 
 async function cleanupTempDirs() {
   if (currentCardTmpRoot) {
@@ -338,6 +337,7 @@ async function cleanupTempDirs() {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 process.on('SIGINT', async () => {
   console.log('\nSIGINT received. Attempting to clean up temporary directories...');
   await cleanupTempDirs();
