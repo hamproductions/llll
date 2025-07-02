@@ -22,17 +22,14 @@ export function AdditionalInfoSection(props: AdditionalInfoSectionProps) {
 
   return (
     <>
-      {(limitBreakMaterials?.length ?? 0) > 0 && (
-        <Stack gap="4" w="full" mt="4">
-          <Text fontSize="2xl" fontWeight="bold">
-            {t('limit_break_materials')}
-          </Text>
-          <LimitBreakMaterialsTable materials={limitBreakMaterials!} />
-        </Stack>
-      )}
+
 
       {(styleMovies?.length ?? 0) > 0 && (
-        <StyleMoviesDisplay cardId={cardId} movies={styleMovies!} title={t('style_movies')} />
+        <StyleMoviesDisplay
+          cardId={cardId}
+          movies={styleMovies!}
+          title={t('style_movies')}
+        />
       )}
 
       {(styleVoices?.length ?? 0) > 0 && (

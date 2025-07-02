@@ -36,10 +36,44 @@ export const getCardUrl = (id: number, variantId: string): string => {
   return getAssetUrl(join(`cards/${id}/images`, `image_card_full_${variantId}.webp`));
 };
 
+export const getCardImageUrl = (id: number, variant: 0 | 1): string => {
+  return getAssetUrl(join(`cards/${id}/images`, `image_card_full_${id}${variant}.webp`));
+};
+
 export const getCardAudioUrl = (id: number, type: string): string => {
   return getAssetUrl(join(`cards/${id}/voice`, `vo_card_${id}_${type}.webm`));
 };
 
 export const getCardAudioFile = (id: number, fileName: string): string => {
   return getAssetUrl(join(`cards/${id}/voice`, `${fileName}.webm`));
+};
+
+export const getCardVideoUrl = (id: number, type: string, variant?: string): string => {
+  let filename = '';
+  switch (type) {
+    case 'get_in':
+      filename = `picture_ur_get_${id}_in.webm`;
+      break;
+    case 'get_loop':
+      filename = `picture_ur_get_${id}_loop.webm`;
+      break;
+    case 'training_in':
+      filename = `picture_ur_training_${id}_in.webm`;
+      break;
+    case 'training_loop':
+      filename = `picture_ur_training_${id}_loop.webm`;
+      break;
+    case 'home':
+      if (variant !== undefined) {
+        filename = `picture_ur_home_${id}${variant}.webm`;
+      } else {
+        console.warn(`Variant not provided for home video type for card ${id}`);
+        return '';
+      }
+      break;
+    default:
+      console.warn(`Unknown video type: ${type} for card ${id}`);
+      return '';
+  }
+  return getAssetUrl(join(`cards/${id}/videos`, filename));
 };

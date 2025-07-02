@@ -125,7 +125,7 @@ export function Page() {
               />
             )}
 
-            <Tabs.Root defaultValue={TABS[0].value} w-full>
+            <Tabs.Root defaultValue={TABS[0].value} width="full">
               <Tabs.List>
                 {TABS.map((tab) => (
                   <Tabs.Trigger key={tab.value} value={tab.value}>
@@ -140,16 +140,14 @@ export function Page() {
               ))}
             </Tabs.Root>
 
-            {selectedLimitBreakIndex === 0 && (
-              <AdditionalInfoSection
-                cardId={selectedCardData.cardSeriesId ?? 0}
-                limitBreakMaterials={limitBreakMaterials}
-                styleMovies={styleMovies}
-                styleVoices={styleVoices}
-                limitBreakMaterialRates={limitBreakMaterialRates}
-                t={t}
-              />
-            )}
+            <AdditionalInfoSection
+              cardId={selectedCardData.cardSeriesId ?? 0}
+              limitBreakMaterials={limitBreakMaterials}
+              styleMovies={styleMovies}
+              styleVoices={styleVoices}
+              limitBreakMaterialRates={limitBreakMaterialRates}
+              t={t}
+            />
           </Stack>
         </Stack>
       </Stack>
