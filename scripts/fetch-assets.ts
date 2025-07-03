@@ -3,7 +3,12 @@ import * as path from 'node:path';
 import { readableStreamToArrayBuffer } from 'bun';
 
 // Helper function to run shell commands
-async function runCommand(command: string, args: string[], cwd?: string, logPrefix?: string) {
+export async function runCommand(
+  command: string,
+  args: string[],
+  cwd?: string,
+  logPrefix?: string
+) {
   const commandDisplay = `${command} ${args.join(' ')}`;
   console.log(`${logPrefix || '[CMD]'} Running: ${commandDisplay} ${cwd ? `(in ${cwd})` : ''}`);
   const proc = Bun.spawn([command, ...args], {
@@ -83,12 +88,7 @@ async function processVoiceAssets(
       const destFileName = `${sourceFileBaseNameWithoutExt}.webm`;
       const destFilePath = path.join(voiceDestDir, destFileName);
 
-      if (
-        await fs
-          .access(destFilePath)
-          .then(() => true)
-          .catch(() => false)
-      ) {
+      if (await destinationContainsFileStartingWith(voiceDestDir, sourceFileBaseNameWithoutExt)) {
         console.log(`Skipping voice asset ${file} as it already exists as ${destFileName}`);
         continue;
       }
@@ -112,6 +112,70 @@ async function processVoiceAssets(
   }
 }
 
+export async function processGenericImageAssets(
+  assetFilename: string,
+  fetchedAssetsDir: string,
+  imagesDestDir: string,
+  tmpRoot: string,
+  projectRoot: string,
+  logPrefix: string
+) {
+  const imageAssetSourcePath = path.join(fetchedAssetsDir, assetFilename);
+  try {
+    await fs.access(imageAssetSourcePath);
+    const tmpImageProcessingDir = path.join(
+      tmpRoot,
+      `processing_${assetFilename.replace(/[^a-zA-Z0-9]/g, '_')}`
+    );
+    await fs.mkdir(tmpImageProcessingDir, { recursive: true });
+    const processingImagePath = path.join(tmpImageProcessingDir, assetFilename);
+    await fs.copyFile(imageAssetSourcePath, processingImagePath);
+
+    await runCommand(
+      'arch',
+      [
+        '-x86_64',
+        '/usr/bin/python3',
+        '-m',
+        'vendor.assetbundle_dist.assetbundle',
+        processingImagePath
+      ],
+      path.join(projectRoot, '../hasu_tools'),
+      `[ImageDecrypt-${logPrefix}]`
+    );
+
+    const imageOutDir = path.join(tmpImageProcessingDir, 'out');
+    const outputFiles = await fs.readdir(imageOutDir);
+    for (const file of outputFiles) {
+      if (file.endsWith('.png') || file.endsWith('.jpg')) {
+        const sourceFilePath = path.join(imageOutDir, file);
+        const destFileName = `${path.basename(file, path.extname(file))}.webp`;
+        const destFilePath = path.join(imagesDestDir, destFileName);
+
+        if (
+          await destinationContainsFileStartingWith(
+            imagesDestDir,
+            path.basename(destFileName, '.webp')
+          )
+        ) {
+          console.log(
+            `Skipping image asset ${file} as a file starting with base name '${path.basename(destFileName, '.webp')}' already exists in ${imagesDestDir}`
+          );
+          continue;
+        }
+
+        await runCommand('ffmpeg', ['-i', sourceFilePath, '-q:v', '85', destFilePath]);
+      }
+    }
+    console.log(`Processed image ${assetFilename} moved to: ${imagesDestDir}`);
+    await fs.rm(tmpImageProcessingDir, { recursive: true, force: true });
+  } catch (e) {
+    console.warn(
+      `Image asset ${assetFilename} not found or processing failed: ${(e as Error).message}`
+    );
+  }
+}
+
 async function processImageAssets(
   cardSeriesId: number,
   fetchedAssetsDir: string,
@@ -122,57 +186,14 @@ async function processImageAssets(
 ) {
   for (const variant of imageVariants) {
     const imageAssetFilename = `image_card_full_${cardSeriesId}${variant}`;
-    const imageAssetSourcePath = path.join(fetchedAssetsDir, imageAssetFilename);
-    try {
-      await fs.access(imageAssetSourcePath);
-      const tmpImageProcessingDir = path.join(cardTmpRoot, `processing_image_${variant}`);
-      await fs.mkdir(tmpImageProcessingDir, { recursive: true });
-      const processingImagePath = path.join(tmpImageProcessingDir, imageAssetFilename);
-      await fs.copyFile(imageAssetSourcePath, processingImagePath);
-
-      await runCommand(
-        'arch',
-        [
-          '-x86_64',
-          '/usr/bin/python3',
-          '-m',
-          'vendor.assetbundle_dist.assetbundle',
-          processingImagePath
-        ],
-        path.join(projectRoot, '../hasu_tools'),
-        `[ImageDecrypt-${cardSeriesId}-${variant}]`
-      );
-
-      const imageOutDir = path.join(tmpImageProcessingDir, 'out');
-      const outputFiles = await fs.readdir(imageOutDir);
-      for (const file of outputFiles) {
-        if (file.endsWith('.png') || file.endsWith('.jpg')) {
-          const sourceFilePath = path.join(imageOutDir, file);
-          const destFileName = `${path.basename(file, path.extname(file))}.webp`;
-          const destFilePath = path.join(imagesDestDir, destFileName);
-
-          const alreadyExists = await destinationContainsFileStartingWith(
-            imagesDestDir,
-            path.basename(destFileName, '.webp')
-          );
-
-          if (alreadyExists) {
-            console.log(
-              `Skipping image asset ${file} as a file starting with base name '${path.basename(destFileName, '.webp')}' already exists in ${imagesDestDir}`
-            );
-            continue;
-          }
-
-          await runCommand('ffmpeg', ['-i', sourceFilePath, '-q:v', '85', destFilePath]);
-        }
-      }
-      console.log(`Processed image variant ${variant} moved to: ${imagesDestDir}`);
-      await fs.rm(tmpImageProcessingDir, { recursive: true, force: true });
-    } catch (e) {
-      console.warn(
-        `Image asset ${imageAssetFilename} not found or processing failed: ${(e as Error).message}`
-      );
-    }
+    await processGenericImageAssets(
+      imageAssetFilename,
+      fetchedAssetsDir,
+      imagesDestDir,
+      cardTmpRoot,
+      projectRoot,
+      `CardFull-${cardSeriesId}-${variant}`
+    );
   }
 }
 
@@ -186,63 +207,14 @@ async function processSpecialAppealImages(
 ) {
   for (const variant of imageVariants) {
     const specialAppealImageFilename = `image_card_specialappeal_${cardSeriesId}${variant}`;
-    const specialAppealImageSourcePath = path.join(fetchedAssetsDir, specialAppealImageFilename);
-    try {
-      await fs.access(specialAppealImageSourcePath);
-      const tmpSpecialAppealImageProcessingDir = path.join(
-        cardTmpRoot,
-        `processing_special_appeal_image_${variant}`
-      );
-      await fs.mkdir(tmpSpecialAppealImageProcessingDir, { recursive: true });
-      const processingImagePath = path.join(
-        tmpSpecialAppealImageProcessingDir,
-        specialAppealImageFilename
-      );
-      await fs.copyFile(specialAppealImageSourcePath, processingImagePath);
-
-      await runCommand(
-        'arch',
-        [
-          '-x86_64',
-          '/usr/bin/python3',
-          '-m',
-          'vendor.assetbundle_dist.assetbundle',
-          processingImagePath
-        ],
-        path.join(projectRoot, '../hasu_tools'),
-        `[ImageDecrypt-SpecialAppeal-${cardSeriesId}-${variant}]`
-      );
-
-      const imageOutDir = path.join(tmpSpecialAppealImageProcessingDir, 'out');
-      const outputFiles = await fs.readdir(imageOutDir);
-      for (const file of outputFiles) {
-        if (file.endsWith('.png') || file.endsWith('.jpg')) {
-          const sourceFilePath = path.join(imageOutDir, file);
-          const destFileName = `${path.basename(file, path.extname(file))}.webp`;
-          const destFilePath = path.join(imagesDestDir, destFileName);
-
-          const alreadyExists = await destinationContainsFileStartingWith(
-            imagesDestDir,
-            path.basename(destFileName, '.webp')
-          );
-
-          if (alreadyExists) {
-            console.log(
-              `Skipping special appeal image asset ${file} as a file starting with base name '${path.basename(destFileName, '.webp')}' already exists in ${imagesDestDir}`
-            );
-            continue;
-          }
-
-          await runCommand('ffmpeg', ['-i', sourceFilePath, '-q:v', '85', destFilePath]);
-        }
-      }
-      console.log(`Processed special appeal image variant ${variant} moved to: ${imagesDestDir}`);
-      await fs.rm(tmpSpecialAppealImageProcessingDir, { recursive: true, force: true });
-    } catch (e) {
-      console.warn(
-        `Special appeal image asset ${specialAppealImageFilename} not found or processing failed: ${(e as Error).message}`
-      );
-    }
+    await processGenericImageAssets(
+      specialAppealImageFilename,
+      fetchedAssetsDir,
+      imagesDestDir,
+      cardTmpRoot,
+      projectRoot,
+      `SpecialAppeal-${cardSeriesId}-${variant}`
+    );
   }
 }
 
@@ -254,60 +226,14 @@ async function processDeckFrameCharaImage(
   projectRoot: string,
   deckFrameCharaImageFilename: string
 ) {
-  const deckFrameCharaImageSourcePath = path.join(fetchedAssetsDir, deckFrameCharaImageFilename);
-  try {
-    await fs.access(deckFrameCharaImageSourcePath);
-    const tmpDeckFrameCharaProcessingDir = path.join(cardTmpRoot, 'processing_deck_frame_chara');
-    await fs.mkdir(tmpDeckFrameCharaProcessingDir, { recursive: true });
-    const processingImagePath = path.join(
-      tmpDeckFrameCharaProcessingDir,
-      deckFrameCharaImageFilename
-    );
-    await fs.copyFile(deckFrameCharaImageSourcePath, processingImagePath);
-
-    await runCommand(
-      'arch',
-      [
-        '-x86_64',
-        '/usr/bin/python3',
-        '-m',
-        'vendor.assetbundle_dist.assetbundle',
-        processingImagePath
-      ],
-      path.join(projectRoot, '../hasu_tools'),
-      `[ImageDecrypt-DeckFrameChara-${cardSeriesId}]`
-    );
-
-    const imageOutDir = path.join(tmpDeckFrameCharaProcessingDir, 'out');
-    const outputFiles = await fs.readdir(imageOutDir);
-    for (const file of outputFiles) {
-      if (file.endsWith('.png') || file.endsWith('.jpg')) {
-        const sourceFilePath = path.join(imageOutDir, file);
-        const destFileName = `${path.basename(file, path.extname(file))}.webp`;
-        const destFilePath = path.join(imagesDestDir, destFileName);
-
-        const alreadyExists = await destinationContainsFileStartingWith(
-          imagesDestDir,
-          path.basename(destFileName, '.webp')
-        );
-
-        if (alreadyExists) {
-          console.log(
-            `Skipping deck frame chara image asset ${file} as a file starting with base name '${path.basename(destFileName, '.webp')}' already exists in ${imagesDestDir}`
-          );
-          continue;
-        }
-
-        await runCommand('ffmpeg', ['-i', sourceFilePath, '-q:v', '85', destFilePath]);
-      }
-    }
-    console.log(`Processed deck frame chara image moved to: ${imagesDestDir}`);
-    await fs.rm(tmpDeckFrameCharaProcessingDir, { recursive: true, force: true });
-  } catch (e) {
-    console.warn(
-      `Deck frame chara image asset ${deckFrameCharaImageFilename} not found or processing failed: ${(e as Error).message}`
-    );
-  }
+  await processGenericImageAssets(
+    deckFrameCharaImageFilename,
+    fetchedAssetsDir,
+    imagesDestDir,
+    cardTmpRoot,
+    projectRoot,
+    `DeckFrameChara-${cardSeriesId}`
+  );
 }
 
 async function processVideoAssets(
@@ -355,14 +281,12 @@ async function processVideoAssets(
           const sourceFilePath = path.join(tmpVideoProcessingDir, file);
           const destFilePath = path.join(videosDestDir, file);
 
-          const alreadyExists = await destinationContainsFileStartingWith(
-            videosDestDir,
-            path.basename(file, '.webm')
-          );
-
-          if (alreadyExists) {
+          try {
+            await fs.access(destFilePath);
             console.log(`Skipping video asset ${file} as it already exists in ${videosDestDir}`);
             continue;
+          } catch (e) {
+            // File does not exist, proceed with moving
           }
 
           await fs.rename(sourceFilePath, destFilePath);
@@ -429,27 +353,6 @@ export async function fetchAssets(cardSeriesId: number): Promise<void> {
   const imagesDestDir = path.join(cardPublicDestRoot, 'images');
   const videosDestDir = path.join(cardPublicDestRoot, 'videos');
 
-  // Check if destination directories are empty for each media type
-  const voiceDestDirEmpty = !(await fs
-    .access(voiceDestDir)
-    .then(() => fs.readdir(voiceDestDir).then((files) => files.length > 0))
-    .catch(() => false));
-  const imagesDestDirEmpty = !(await fs
-    .access(imagesDestDir)
-    .then(() => fs.readdir(imagesDestDir).then((files) => files.length > 0))
-    .catch(() => false));
-  const videosDestDirEmpty = !(await fs
-    .access(videosDestDir)
-    .then(() => fs.readdir(videosDestDir).then((files) => files.length > 0))
-    .catch(() => false));
-
-  if (!voiceDestDirEmpty && !imagesDestDirEmpty && !videosDestDirEmpty) {
-    console.log(
-      `Skipping cardSeriesId ${cardSeriesId} as all media types already exist in ${cardPublicDestRoot}.`
-    );
-    return;
-  }
-
   await fs.mkdir(fetchedAssetsDir, { recursive: true });
   console.log(`Created temporary directory: ${fetchedAssetsDir}`);
 
@@ -462,39 +365,56 @@ export async function fetchAssets(cardSeriesId: number): Promise<void> {
   try {
     console.log(`Starting asset processing for cardSeriesId: ${cardSeriesId}`);
 
-    if (voiceDestDirEmpty) {
-      await fs.mkdir(voiceDestDir, { recursive: true });
-      voiceAssetFilename = `vo_card_${cardSeriesId}.acb`;
+    // Voice Assets
+    voiceAssetFilename = `vo_card_${cardSeriesId}.acb`;
+    const voiceOutputPrefix = `vo_card_${cardSeriesId}`; // Output files start with this
+    await fs.mkdir(voiceDestDir, { recursive: true });
+    if (!(await destinationContainsFileStartingWith(voiceDestDir, voiceOutputPrefix))) {
       assetsToFetch.push(voiceAssetFilename);
       console.log(`Identified voice asset for fetching: ${voiceAssetFilename}`);
     } else {
       console.log(
-        `Skipping voice asset fetching for cardSeriesId ${cardSeriesId} as voice directory is not empty.`
+        `Skipping voice asset fetching for cardSeriesId ${cardSeriesId} as processed output already exists.`
       );
     }
 
     const imageVariants = ['0', '1']; // Assuming '2' is also a valid variant for specialappeal
-    if (imagesDestDirEmpty) {
-      await fs.mkdir(imagesDestDir, { recursive: true });
-      for (const variant of imageVariants) {
-        const imageAssetFilename = `image_card_full_${cardSeriesId}${variant}`;
+    await fs.mkdir(imagesDestDir, { recursive: true });
+    for (const variant of imageVariants) {
+      const imageAssetFilename = `image_card_full_${cardSeriesId}${variant}`;
+      const imageOutputPrefix = `image_card_full_${cardSeriesId}${variant}`; // Output files start with this
+      if (!(await destinationContainsFileStartingWith(imagesDestDir, imageOutputPrefix))) {
         assetsToFetch.push(imageAssetFilename);
         console.log(`Identified image asset for fetching: ${imageAssetFilename}`);
+      } else {
+        console.log(
+          `Skipping image asset ${imageAssetFilename} as processed output already exists.`
+        );
+      }
 
-        const specialAppealImageFilename = `image_card_specialappeal_${cardSeriesId}${variant}`;
+      const specialAppealImageFilename = `image_card_specialappeal_${cardSeriesId}${variant}`;
+      const specialAppealOutputPrefix = `image_card_specialappeal_${cardSeriesId}${variant}`;
+      if (!(await destinationContainsFileStartingWith(imagesDestDir, specialAppealOutputPrefix))) {
         assetsToFetch.push(specialAppealImageFilename);
         console.log(
           `Identified special appeal image asset for fetching: ${specialAppealImageFilename}`
         );
+      } else {
+        console.log(
+          `Skipping special appeal image ${specialAppealImageFilename} as processed output already exists.`
+        );
       }
-      deckFrameCharaImageFilename = `image_deck_frame_chara_${cardSeriesId}`;
+    }
+    deckFrameCharaImageFilename = `image_deck_frame_chara_${cardSeriesId}`;
+    const deckFrameCharaOutputPrefix = `image_deck_frame_chara_${cardSeriesId}`;
+    if (!(await destinationContainsFileStartingWith(imagesDestDir, deckFrameCharaOutputPrefix))) {
       assetsToFetch.push(deckFrameCharaImageFilename);
       console.log(
         `Identified deck frame chara image asset for fetching: ${deckFrameCharaImageFilename}`
       );
     } else {
       console.log(
-        `Skipping image asset fetching for cardSeriesId ${cardSeriesId} as images directory is not empty.`
+        `Skipping deck frame chara image ${deckFrameCharaImageFilename} as processed output already exists.`
       );
     }
 
@@ -502,21 +422,20 @@ export async function fetchAssets(cardSeriesId: number): Promise<void> {
       `picture_ur_training_${cardSeriesId}_in.usm`,
       `picture_ur_training_${cardSeriesId}_loop.usm`,
       `picture_ur_get_${cardSeriesId}_in.usm`,
-      `picture_ur_get_${cardSeriesId}_loop.usm`
+      `picture_ur_get_${cardSeriesId}_loop.usm`,
+      `picture_ur_home_${cardSeriesId}0.usm`,
+      `picture_ur_home_${cardSeriesId}1.usm`
     ];
-    for (const variant of imageVariants) {
-      videoPatterns.push(`picture_ur_home_${cardSeriesId}${variant}.usm`);
-    }
-    if (videosDestDirEmpty) {
-      await fs.mkdir(videosDestDir, { recursive: true });
-      for (const videoFilename of videoPatterns) {
+
+    await fs.mkdir(videosDestDir, { recursive: true });
+    for (const videoFilename of videoPatterns) {
+      const videoOutputPrefix = path.basename(videoFilename, '.usm');
+      if (!(await destinationContainsFileStartingWith(videosDestDir, videoOutputPrefix))) {
         assetsToFetch.push(videoFilename);
         console.log(`Identified video asset for fetching: ${videoFilename}`);
+      } else {
+        console.log(`Skipping video asset ${videoFilename} as processed output already exists.`);
       }
-    } else {
-      console.log(
-        `Skipping video asset fetching for cardSeriesId ${cardSeriesId} as videos directory is not empty.`
-      );
     }
 
     const uniqueAssetsToFetch = Array.from(new Set(assetsToFetch));
@@ -540,7 +459,7 @@ export async function fetchAssets(cardSeriesId: number): Promise<void> {
 
       const processingPromises: Promise<void>[] = [];
 
-      if (voiceDestDirEmpty && voiceAssetFilename) {
+      if (voiceAssetFilename) {
         processingPromises.push(
           processVoiceAssets(
             cardSeriesId,
@@ -552,51 +471,41 @@ export async function fetchAssets(cardSeriesId: number): Promise<void> {
           )
         );
       }
-      if (imagesDestDirEmpty) {
+      processingPromises.push(
+        processImageAssets(
+          cardSeriesId,
+          fetchedAssetsDir,
+          imagesDestDir,
+          cardTmpRoot,
+          projectRoot,
+          imageVariants
+        )
+      );
+      processingPromises.push(
+        processSpecialAppealImages(
+          cardSeriesId,
+          fetchedAssetsDir,
+          imagesDestDir,
+          cardTmpRoot,
+          projectRoot,
+          imageVariants
+        )
+      );
+      if (deckFrameCharaImageFilename) {
         processingPromises.push(
-          processImageAssets(
+          processDeckFrameCharaImage(
             cardSeriesId,
             fetchedAssetsDir,
             imagesDestDir,
             cardTmpRoot,
             projectRoot,
-            imageVariants
-          )
-        );
-        processingPromises.push(
-          processSpecialAppealImages(
-            cardSeriesId,
-            fetchedAssetsDir,
-            imagesDestDir,
-            cardTmpRoot,
-            projectRoot,
-            imageVariants
-          )
-        );
-        if (deckFrameCharaImageFilename) {
-          processingPromises.push(
-            processDeckFrameCharaImage(
-              cardSeriesId,
-              fetchedAssetsDir,
-              imagesDestDir,
-              cardTmpRoot,
-              projectRoot,
-              deckFrameCharaImageFilename
-            )
-          );
-        }
-      }
-      if (videosDestDirEmpty) {
-        processingPromises.push(
-          processVideoAssets(
-            cardSeriesId,
-            fetchedAssetsDir,
-            videosDestDir,
-            cardTmpRoot,
-            projectRoot
+            deckFrameCharaImageFilename
           )
         );
       }
+      processingPromises.push(
+        processVideoAssets(cardSeriesId, fetchedAssetsDir, videosDestDir, cardTmpRoot, projectRoot)
+      );
 
       await Promise.all(processingPromises);
     } else {

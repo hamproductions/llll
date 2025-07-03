@@ -22,6 +22,7 @@ export type SkillWithEffects = InferSelectModel<typeof schema.cardSkills> & {
 export type SkillSeriesDetails = {
   series: InferSelectModel<typeof schema.cardSkillSeries>;
   skills: SkillWithEffects[];
+  skillIcon?: number | null;
 };
 
 type PrefetchState = {
@@ -283,7 +284,7 @@ function buildSkillSeriesFromPrefetched(
     return { ...skillRaw, effects: effectsForThisSkill };
   });
 
-  return { series: skillSeriesData, skills: skillsWithEffects };
+  return { series: skillSeriesData, skills: skillsWithEffects, skillIcon: skillSeriesData.skillIcon };
 }
 
 function buildEffectDetailsRecursive(

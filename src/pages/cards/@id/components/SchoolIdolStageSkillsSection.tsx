@@ -25,7 +25,11 @@ export function SchoolIdolStageSkillsSection({
         <SkillInfoDisplay skillInfo={specialAppealInfo} title={t('special_appeal_info')} />
       )}
       {normalSkillInfo && (
-        <SkillInfoDisplay skillInfo={normalSkillInfo} title={t('normal_skill_info')} />
+        <SkillInfoDisplay
+          skillInfo={normalSkillInfo}
+          title={t('normal_skill_info')}
+          // showEffectDetails
+        />
       )}
       {attributeSkillInfo && (
         <SkillInfoDisplay skillInfo={attributeSkillInfo} title={t('attribute_skill_title')} />

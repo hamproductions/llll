@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SkillSeriesDetails } from '../card-data';
 import { RecursiveSkillEffectDisplay } from './RecursiveSkillEffectDisplay';
-import { Box, HStack, Stack } from 'styled-system/jsx';
+import { HStack, Stack, styled } from 'styled-system/jsx';
 import { createListCollection, Select } from '~/components/ui/select';
 import { Text } from '~/components/ui/text';
+import { getPicUrl } from '~/utils/assets';
 
 interface SkillInfoDisplayProps {
   skillInfo?: SkillSeriesDetails;
@@ -77,7 +78,7 @@ function SkillInfoDisplay({ skillInfo, title, showEffectDetails = false }: Skill
   if (!skillInfo) return null;
 
   return (
-    <Stack gap="2" mt="4">
+    <Stack gap="2">
       <Text fontSize="xl" fontWeight="bold">
         {title}
       </Text>
@@ -86,7 +87,7 @@ function SkillInfoDisplay({ skillInfo, title, showEffectDetails = false }: Skill
       )}
 
       {availableSkillLevels.items.length > 1 && (
-        <HStack mb="2">
+        <HStack>
           <label htmlFor={`${title.replace(/\s+/g, '-')}-skill-level-select`}>
             {t('select_skill_level')}:
           </label>
@@ -121,50 +122,69 @@ function SkillInfoDisplay({ skillInfo, title, showEffectDetails = false }: Skill
       )}
 
       {selectedSkill && hasAnySkillContent && (
-        <Box key={selectedSkill.id} borderRadius="md" borderWidth="1px" mb="2" p="3">
-          <Text fontSize="md" fontWeight="semibold">
-            {t('skill_level')}: {selectedSkill.skillLevel} | {t('skill_cost')}:{' '}
-            {selectedSkill.skillCost}
-          </Text>
-          {selectedSkill.description && selectedSkill.description.trim() !== '' && (
-            <Text mb="2" fontSize="sm" whiteSpace="pre-line">
-              {(selectedSkill.description ?? '').split('$').map((part, partIndex) =>
-                partIndex % 2 === 1 ? (
-                  <Text as="span" key={partIndex} fontWeight="bold">
-                    {part}
-                  </Text>
-                ) : (
-                  <Text as="span" key={partIndex}>
-                    {part}
-                  </Text>
-                )
-              )}
+        <HStack
+          key={selectedSkill.id}
+          alignItems="flex-start"
+          borderRadius="md"
+          borderWidth="1px"
+          p="3"
+        >
+          <styled.img src={getPicUrl(skillInfo.skillIcon ?? '', 'skillIcon')} maxW="12" />
+          <Stack gap="0">
+            <Text fontSize="md" fontWeight="semibold">
+              {t('skill_level')}: {selectedSkill.skillLevel} | {t('skill_cost')}:{' '}
+              {selectedSkill.skillCost}
             </Text>
-          )}
-          {selectedSkill.effects.map((effect) => {
-            const hasDetailsToShow = showEffectDetails || effect.details.length > 0;
-            if (!hasDetailsToShow) return null; // Don't render the Box if no content
-
-            return (
-              <Box key={effect.id} borderLeftWidth="2px" borderColor="accent.default" mt="2" pl="2">
-                {showEffectDetails && (
-                  <Text fontSize="sm" fontWeight="medium">
-                    {t('effect_id')}: {effect.id} | {t('action_type')}: {effect.actionType} |{' '}
-                    {t('order_id')}: {effect.orderId}
-                  </Text>
+            {selectedSkill.description && selectedSkill.description.trim() !== '' && (
+              <Text mb="2" fontSize="sm" whiteSpace="pre-line">
+                {(selectedSkill.description ?? '').split('$').map((part, partIndex) =>
+                  partIndex % 2 === 1 ? (
+                    <Text as="span" key={partIndex} fontWeight="bold">
+                      {part}
+                    </Text>
+                  ) : (
+                    <Text as="span" key={partIndex}>
+                      {part}
+                    </Text>
+                  )
                 )}
-                {effect.details.map((detail, idx) => (
-                  <RecursiveSkillEffectDisplay
-                    key={`${detail.id}-${idx}`}
-                    detail={detail}
-                    level={1}
-                    showEffectDetails={showEffectDetails}
-                  />
-                ))}
-              </Box>
-            );
-          })}
-        </Box>
+              </Text>
+            )}
+
+            {selectedSkill.effects.map((effect) => {
+              const hasDetailsToShow = showEffectDetails || effect.details.length > 0;
+              const resourceId = effect.details.find((d) =>
+                d.skillEffectDetailType?.endsWith('_RESOURCE_ID')
+              )?.effectValue;
+
+              if (!hasDetailsToShow) return null; // Don't render the Box if no content
+
+              return (
+                <HStack key={effect.id} alignItems="flex-start" pl="2">
+                  {resourceId && (
+                    <styled.img src={getPicUrl(resourceId.toString(), 'token')} maxW="12" />
+                  )}
+                  <Stack>
+                    {showEffectDetails && (
+                      <Text fontSize="sm" fontWeight="medium">
+                        {t('effect_id')}: {effect.id} | {t('action_type')}: {effect.actionType} |{' '}
+                        {t('order_id')}: {effect.orderId}
+                      </Text>
+                    )}
+                    {effect.details.map((detail, idx) => (
+                      <RecursiveSkillEffectDisplay
+                        key={`${detail.id}-${idx}`}
+                        detail={detail}
+                        level={1}
+                        showEffectDetails={showEffectDetails}
+                      />
+                    ))}
+                  </Stack>
+                </HStack>
+              );
+            })}
+          </Stack>
+        </HStack>
       )}
     </Stack>
   );

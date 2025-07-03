@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
 
 import type { SkillEffectDetailWithRecursion } from '../card-data';
-import { Box } from 'styled-system/jsx';
+import { Box, HStack, Stack, styled } from 'styled-system/jsx';
 import { Text } from '~/components/ui/text';
+import { getPicUrl } from '~/utils/assets';
 
 interface RecursiveSkillEffectDisplayProps {
   detail: SkillEffectDetailWithRecursion;
@@ -38,7 +39,7 @@ export function RecursiveSkillEffectDisplay({
 
   const subEffectContent = detail.subEffect &&
     (showEffectDetails || (subEffectDetails && subEffectDetails.length > 0)) && (
-      <Box borderLeftWidth="1px" borderColor="border.muted" ml="2" mt="1" pl="4">
+      <Box ml="2" pl="4">
         {showEffectDetails && (
           <Text color="fg.muted" fontSize="xs" fontWeight="medium">
             {t('sub_effect_details')}: {detail.subEffect.actionType} (Order:{' '}
@@ -80,18 +81,29 @@ export function RecursiveSkillEffectDisplay({
             ))
             .filter(Boolean);
 
+          const resourceId = effect.details.find((d) =>
+            d.skillEffectDetailType?.endsWith('RESOURCE_ID')
+          )?.effectValue;
+
+          resourceId && console.log(resourceId);
+
           const hasEffectContent = showEffectDetails || (effectDetails && effectDetails.length > 0);
           if (!hasEffectContent) return null;
 
           return (
-            <Box key={effect.id} borderLeftWidth="1px" borderColor="border.muted" mt="1" pl="4">
+            <Box key={effect.id}>
               {showEffectDetails && (
                 <Text color="fg.muted" fontSize="xs" fontWeight="medium">
                   {t('effect_id')}: {effect.id} | {t('action_type')}: {effect.actionType} |{' '}
                   {t('order_id')}: {effect.orderId}
                 </Text>
               )}
-              {effectDetails}
+              <HStack alignItems="flex-start">
+                {resourceId && (
+                  <styled.img src={getPicUrl(resourceId.toString(), 'token')} maxW="12" />
+                )}
+                <Stack gap={0}>{effectDetails}</Stack>
+              </HStack>
             </Box>
           );
         })
@@ -103,26 +115,31 @@ export function RecursiveSkillEffectDisplay({
       if (!hasSkillContent) return null;
 
       return (
-        <Box key={subSkill.id} borderLeftWidth="1px" borderColor="border.default" mt="1" pl="4">
-          <Text fontSize="xs" fontWeight="semibold">
-            {t('skill_level')}: {subSkill.skillLevel} | {t('skill_cost')}: {subSkill.skillCost}
-          </Text>
-          {skillDescription}
-          {skillEffects}
-        </Box>
+        <HStack key={subSkill.id} alignItems="flex-start">
+          <styled.img src={getPicUrl(detail.subSeries.skillIcon, 'skillIcon')} maxW="12" />
+          <Stack gap={0}>
+            <Text fontSize="xs" fontWeight="semibold">
+              {t('skill_level')}: {subSkill.skillLevel} | {t('skill_cost')}: {subSkill.skillCost}
+            </Text>
+            {skillDescription}
+            {skillEffects}
+          </Stack>
+        </HStack>
       );
     })
     .filter(Boolean);
 
   const subSeriesContent = detail.subSeries &&
     (showEffectDetails || (subSeriesSkills && subSeriesSkills.length > 0)) && (
-      <Box borderLeftWidth="1px" borderColor="border.muted" mt="1" pl="4">
-        <Text color="fg.muted" fontSize="xs" fontWeight="medium">
-          {detail.subSeries.series.name}{' '}
-          {showEffectDetails && <>(ID: {detail.subSeries.series.id})</>}
-        </Text>
-        {subSeriesSkills}
-      </Box>
+      <HStack alignItems="flex-start">
+        <Stack gap={0}>
+          <Text color="fg.muted" fontSize="xs" fontWeight="medium">
+            {detail.subSeries.series.name}{' '}
+            {showEffectDetails && <>(ID: {detail.subSeries.series.id})</>}
+          </Text>
+          {subSeriesSkills}
+        </Stack>
+      </HStack>
     );
 
   const subParamsEffectsDetails = detail.subParamsEffects
@@ -138,23 +155,24 @@ export function RecursiveSkillEffectDisplay({
         ))
         .filter(Boolean);
 
+      const resourceId = subEffect.details.find((d) =>
+        d.skillEffectDetailType?.endsWith('RESOURCE_ID')
+      )?.effectValue;
+
+      resourceId && console.log(resourceId);
+
       const hasSubEffectDetailsToShow =
         showEffectDetails || (subEffectInnerDetails && subEffectInnerDetails.length > 0);
       if (!hasSubEffectDetailsToShow) return null;
 
       return (
-        <Box
-          key={`${subEffect.id}-${idx}`}
-          borderLeftWidth="1px"
-          borderColor="border.default"
-          mt="1"
-          pl="4"
-        >
+        <Box key={`${subEffect.id}-${idx}`}>
           {showEffectDetails && (
             <Text color="fg.muted" fontSize="xs" fontWeight="medium">
               {t('sub_params_effect')}: {subEffect.actionType} (Order: {subEffect.orderId})
             </Text>
           )}
+          {resourceId && <styled.img src={getPicUrl(resourceId.toString(), 'token')} maxW="12" />}
           {subEffectInnerDetails}
         </Box>
       );
@@ -163,9 +181,7 @@ export function RecursiveSkillEffectDisplay({
 
   const subParamsEffectsContent = detail.subParamsEffects &&
     (showEffectDetails || (subParamsEffectsDetails && subParamsEffectsDetails.length > 0)) && (
-      <Box borderLeftWidth="1px" borderColor="border.muted" ml="2" mt="1" pl="4">
-        {subParamsEffectsDetails}
-      </Box>
+      <Box pl="4">{subParamsEffectsDetails}</Box>
     );
 
   const hasAnyContent = mainText || subEffectContent || subSeriesContent || subParamsEffectsContent;
@@ -175,11 +191,13 @@ export function RecursiveSkillEffectDisplay({
   }
 
   return (
-    <Box borderLeftWidth={level > 0 ? '2px' : '0'} borderColor="border.subtle" pl={`${indent}px`}>
+    <Box pl={`${indent}px`}>
       {mainText}
-      {subEffectContent}
-      {subSeriesContent}
-      {subParamsEffectsContent}
+      <Stack>
+        {subEffectContent}
+        {subSeriesContent}
+        {subParamsEffectsContent}
+      </Stack>
     </Box>
   );
 }

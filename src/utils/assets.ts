@@ -6,7 +6,7 @@ const getAssetUrl = (path: string) => {
 export const getPicUrl = (
   id: string,
   // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-  type: 'styleIcon' | 'icons' | 'character' | 'thumbnail' | string = 'character'
+  type: 'styleIcon' | 'icons' | 'character' | 'thumbnail' | 'skillIcon' | string = 'character'
 ) => {
   const fileName = (() => {
     switch (type) {
@@ -20,6 +20,8 @@ export const getPicUrl = (
         return `assets/itemframe/itemframe_icon_itemframe_emoji_{id}.webp`;
       case 'skillIcon':
         return `assets/skillicon/skill_icon_skill_${id}.webp`;
+      case 'token':
+        return `assets/token/image_card_middle_vertical_${id}.webp`;
       default:
         return 'assets/';
     }
