@@ -129,7 +129,11 @@ function SkillInfoDisplay({ skillInfo, title, showEffectDetails = false }: Skill
           borderWidth="1px"
           p="3"
         >
-          <styled.img src={getPicUrl(skillInfo.skillIcon ?? '', 'skillIcon')} maxW="12" />
+          <styled.img
+            src={getPicUrl(skillInfo.skillIcon?.toString() ?? '', 'skillIcon')}
+            alt="Skill Icon"
+            maxW="12"
+          />
           <Stack gap="0">
             <Text fontSize="md" fontWeight="semibold">
               {t('skill_level')}: {selectedSkill.skillLevel} | {t('skill_cost')}:{' '}

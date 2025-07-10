@@ -85,8 +85,6 @@ export function RecursiveSkillEffectDisplay({
             d.skillEffectDetailType?.endsWith('RESOURCE_ID')
           )?.effectValue;
 
-          resourceId && console.log(resourceId);
-
           const hasEffectContent = showEffectDetails || (effectDetails && effectDetails.length > 0);
           if (!hasEffectContent) return null;
 
@@ -100,7 +98,11 @@ export function RecursiveSkillEffectDisplay({
               )}
               <HStack alignItems="flex-start">
                 {resourceId && (
-                  <styled.img src={getPicUrl(resourceId.toString(), 'token')} maxW="12" />
+                  <styled.img
+                    src={getPicUrl(resourceId.toString(), 'token')}
+                    alt="Token Icon"
+                    maxW="12"
+                  />
                 )}
                 <Stack gap={0}>{effectDetails}</Stack>
               </HStack>
@@ -116,7 +118,11 @@ export function RecursiveSkillEffectDisplay({
 
       return (
         <HStack key={subSkill.id} alignItems="flex-start">
-          <styled.img src={getPicUrl(detail.subSeries.skillIcon, 'skillIcon')} maxW="12" />
+          <styled.img
+            src={getPicUrl(detail.subSeries?.skillIcon?.toString() ?? '', 'skillIcon')}
+            alt="Skill Icon"
+            maxW="12"
+          />
           <Stack gap={0}>
             <Text fontSize="xs" fontWeight="semibold">
               {t('skill_level')}: {subSkill.skillLevel} | {t('skill_cost')}: {subSkill.skillCost}
@@ -159,8 +165,6 @@ export function RecursiveSkillEffectDisplay({
         d.skillEffectDetailType?.endsWith('RESOURCE_ID')
       )?.effectValue;
 
-      resourceId && console.log(resourceId);
-
       const hasSubEffectDetailsToShow =
         showEffectDetails || (subEffectInnerDetails && subEffectInnerDetails.length > 0);
       if (!hasSubEffectDetailsToShow) return null;
@@ -172,7 +176,13 @@ export function RecursiveSkillEffectDisplay({
               {t('sub_params_effect')}: {subEffect.actionType} (Order: {subEffect.orderId})
             </Text>
           )}
-          {resourceId && <styled.img src={getPicUrl(resourceId.toString(), 'token')} maxW="12" />}
+          {resourceId && (
+            <styled.img
+              src={getPicUrl(resourceId.toString(), 'token')}
+              alt="Token Icon"
+              maxW="12"
+            />
+          )}
           {subEffectInnerDetails}
         </Box>
       );

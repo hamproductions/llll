@@ -94,7 +94,7 @@ async function fetchAllAssets() {
       `[GetAssets-Token]`
     );
 
-    await fs.rmdir(tmpBaseDir, { recursive: true, force: true });
+    await fs.rmdir(tmpBaseDir, { recursive: true });
   } catch (error) {
     console.error('An error occurred during the fetch-all-assets script:', error);
   } finally {
