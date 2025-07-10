@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { StyleVoice } from '../+data';
 import { Box, HStack, Stack } from 'styled-system/jsx';
 import { Text } from '~/components/ui/text';
@@ -10,6 +11,7 @@ interface StyleVoicesDisplayProps {
 }
 
 function StyleVoicesDisplay({ cardId, voices, title }: StyleVoicesDisplayProps) {
+  const { t } = useTranslation();
   if (!voices || voices.length === 0) {
     return null;
   }
@@ -36,7 +38,7 @@ function StyleVoicesDisplay({ cardId, voices, title }: StyleVoicesDisplayProps) 
             </Box>
             {voice.voiceName && (
               <audio controls src={getCardAudioFile(cardId, voice.voiceName)}>
-                Your browser does not support the audio element.
+                {t('media_controls.audio_not_supported')}
               </audio>
             )}
           </HStack>

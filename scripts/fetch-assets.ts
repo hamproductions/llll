@@ -168,7 +168,7 @@ export async function processGenericImageAssets(
       }
     }
     console.log(`Processed image ${assetFilename} moved to: ${imagesDestDir}`);
-    await fs.rm(tmpImageProcessingDir, { recursive: true, force: true });
+    await fs.rm(tmpImageProcessingDir, { recursive: true, force: true }); // Use force: true for safer removal
   } catch (e) {
     console.warn(
       `Image asset ${assetFilename} not found or processing failed: ${(e as Error).message}`
@@ -336,7 +336,10 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-export async function fetchAssets(cardSeriesId: number): Promise<void> {
+export async function fetchAssets(
+  cardSeriesId: number,
+  aggressiveSkip: boolean = false
+): Promise<void> {
   const projectRoot = process.cwd();
   const publicRoot = path.join(projectRoot, 'public');
   const tmpBaseDir = path.join(publicRoot, 'tmp_assets_processing');
@@ -363,6 +366,19 @@ export async function fetchAssets(cardSeriesId: number): Promise<void> {
   let deckFrameCharaImageFilename: string | undefined;
 
   try {
+    if (aggressiveSkip) {
+      try {
+        await fs.access(cardPublicDestRoot);
+        console.log(`Aggressive Skip: Card ${cardSeriesId} folder already exists. Skipping.`);
+        return;
+      } catch (e: any) {
+        if (e.code === 'ENOENT') {
+          // Directory doesn't exist, continue processing
+        } else {
+          throw e; // Re-throw other errors
+        }
+      }
+    }
     console.log(`Starting asset processing for cardSeriesId: ${cardSeriesId}`);
 
     // Voice Assets
@@ -540,5 +556,6 @@ async function main() {
 }
 
 if (require.main === module) {
+  // Correct way to check if module is run directly
   void main();
 }

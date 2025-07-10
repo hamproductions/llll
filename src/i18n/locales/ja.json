@@ -1,13 +1,13 @@
 {
-  "title": "リンク！ライク！ラブライブ！ 譜面",
-  "description": "音ゲーキタァー",
+  "title": "リンク！ライク！ラブライブ！ エクスプローラー",
+  "description": "内なるアイドルを解き放て。すべてのカードを探索し、スキルを習得。ラブライブ！の伝説となれ。",
   "site_name": "リンクラ譜面",
   "save": "保存",
   "cancel": "キャンセル",
   "back_to_list": "一覧へ戻る",
   "save_image": "画像を保存",
   "open_image_new_tab": "新しいタブで開く",
-  "navigation": { "home": "ホーム" },
+  "navigation": { "home": "ホーム", "cards": "カード" },
   "fever_length": "フィーバー",
   "seconds": "秒",
   "song_table": {
@@ -32,7 +32,9 @@
     "to_fix_it": "に連絡してください。",
     "copy": "エラーメッセージをコピー",
     "reload": "再読み込み",
-    "clear": "データをクリアして際読み込み"
+    "clear": "データをクリアして際読み込み",
+    "something_went_wrong": "何か問題が発生しました、ここにいるべきではありません。",
+    "go_back": "戻る"
   },
   "limit_break": "特訓 {{level}}回目",
   "rarity": "レアリティ",
@@ -79,5 +81,37 @@
   "smile": "スマイル",
   "pure": "ピュア",
   "cool": "クール",
-  "mental": "メンタル"
+  "mental": "メンタル",
+  "table_header_image": "画像",
+  "table_header_rarity": "レアリティ",
+  "table_header_name": "名前",
+  "table_header_character": "キャラクター",
+  "table_header_style": "スタイル",
+  "no_cards_found": "カードが見つかりませんでした。",
+  "card_list_header": "カード一覧",
+  "filter_by_rarity": "レアリティで絞り込み",
+  "select_rarity": "レアリティを選択",
+  "all_rarities": "すべてのレアリティ",
+  "filter_by_character": "キャラクターで絞り込み",
+  "select_character": "キャラクターを選択",
+  "all_characters": "すべてのキャラクター",
+  "filter_by_name": "名前/説明で絞り込み",
+  "no_cards_available_summary": "利用可能なカードはありません。",
+  "filtered_cards_match_summary": "条件に一致するカードが{{total}}枚中{{count}}枚表示されています。",
+  "no_cards_match_filters_summary": "条件に一致するカードはありません。",
+  "all_cards_shown_summary": "全{{count}}枚のカードを表示中。",
+  "home_page": {
+    "explore_cards": "カードを探索",
+    "rhythm_game_charts": "リズムゲーム譜面"
+  },
+  "effect_id": "効果ID",
+  "action_type": "アクションタイプ",
+  "order_id": "オーダーID",
+  "media_controls": {
+    "play": "再生",
+    "pause": "一時停止",
+    "restart": "再開",
+    "video_not_supported": "お使いのブラウザはビデオ要素をサポートしていません。",
+    "audio_not_supported": "お使いのブラウザはオーディオ要素をサポートしていません。"
+  }
 }

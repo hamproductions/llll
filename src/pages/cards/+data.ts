@@ -31,6 +31,7 @@ async function data() {
           )
         })
         .from(cardDatas)
+        .where(sql`${cardDatas.cardSeriesId} NOT IN (1010400, 1010500)`)
     );
 
     // Select only the rows where the rank is 1 (lowest EvolveTimes per series)

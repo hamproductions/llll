@@ -1,13 +1,13 @@
 {
-  "title": "Link! Like! LoveLive! Chart Viewer",
-  "description": "Rhythm game LFG?",
+  "title": "Link! Like! LoveLive! Explorer",
+  "description": "Unleash your inner idol. Explore every card, master every skill. Become a LoveLive! legend.",
   "site_name": "L!L!LL! Chart",
   "save": "Save",
   "cancel": "Cancel",
   "back_to_list": "Back to List",
   "save_image": "Save Image",
   "open_image_new_tab": "Open in New Tab",
-  "navigation": { "home": "Home" },
+  "navigation": { "home": "Home", "cards": "Cards" },
   "fever_length": "Fever",
   "seconds": "seconds",
   "song_table": {
@@ -32,7 +32,9 @@
     "to_fix_it": " to fix it.",
     "copy": "Copy Error Message",
     "reload": "Reload Page",
-    "clear": "Clear Data and Reload Page"
+    "clear": "Clear Data and Reload Page",
+    "something_went_wrong": "Something went wrong lah, you shouldn't be here.",
+    "go_back": "Go Back"
   },
   "limit_break": "Limit Break {{level}}",
   "rarity": "Rarity",
@@ -76,8 +78,36 @@
   },
   "school_idol_stage": "School Idol Stage",
   "school_idol_show": "School Idol Show",
-  "smile": "Smile",
-  "pure": "Pure",
-  "cool": "Cool",
-  "mental": "Mental"
+  "table_header_image": "Image",
+  "table_header_rarity": "Rarity",
+  "table_header_name": "Name",
+  "table_header_character": "Character",
+  "table_header_style": "Style",
+  "no_cards_found": "No cards found.",
+  "card_list_header": "All Cards",
+  "filter_by_rarity": "Filter by Rarity",
+  "select_rarity": "Select Rarity",
+  "all_rarities": "All Rarities",
+  "filter_by_character": "Filter by Character",
+  "select_character": "Select Character",
+  "all_characters": "All Characters",
+  "filter_by_name": "Filter by Name/Description",
+  "no_cards_available_summary": "No cards available.",
+  "filtered_cards_match_summary": "Showing {{count}} of {{total}} cards matching your criteria.",
+  "no_cards_match_filters_summary": "No cards match your criteria.",
+  "all_cards_shown_summary": "Showing all {{count}} cards.",
+  "home_page": {
+    "explore_cards": "Explore Cards",
+    "rhythm_game_charts": "Rhythm Game Charts"
+  },
+  "effect_id": "Effect ID",
+  "action_type": "Action Type",
+  "order_id": "Order ID",
+  "media_controls": {
+    "play": "Play",
+    "pause": "Pause",
+    "restart": "Restart",
+    "video_not_supported": "Your browser does not support the video element.",
+    "audio_not_supported": "Your browser does not support the audio element."
+  }
 }

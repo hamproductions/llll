@@ -234,12 +234,14 @@ function VideoPlayer({ cardId, movie }: VideoPlayerProps) {
             src={audioSrcs[0]}
             preload="auto"
             onEnded={handleAudioEnded}
-          />
+          >
+            {t('media_controls.audio_not_supported')}
+          </styled.audio>
         )}
 
         <HStack justifyContent="space-between" mt="2">
-          <Button onClick={handlePlayPause}>{isPlaying ? 'Pause' : 'Play'}</Button>
-          <Button onClick={handleRestart}>Restart</Button>
+          <Button onClick={handlePlayPause}>{isPlaying ? t('media_controls.pause') : t('media_controls.play')}</Button>
+          <Button onClick={handleRestart}>{t('media_controls.restart')}</Button>
         </HStack>
       </Stack>
     </Stack>
@@ -335,14 +337,16 @@ function HomeVideoPlayer({ cardId, homeVariant }: HomeVideoPlayerProps) {
                 left="0"
                 width="100%"
                 height="100%"
-              />
+              >
+                {t('media_controls.video_not_supported')}
+              </styled.video>
             )}
           </Box>
         )}
         {videoSrc && (
           <HStack justifyContent="space-between" mt="2">
-            <Button onClick={handlePlayPause}>{isPlaying ? 'Pause' : 'Play'}</Button>
-            <Button onClick={handleRestart}>Restart</Button>
+            <Button onClick={handlePlayPause}>{isPlaying ? t('media_controls.pause') : t('media_controls.play')}</Button>
+            <Button onClick={handleRestart}>{t('media_controls.restart')}</Button>
           </HStack>
         )}
       </Stack>

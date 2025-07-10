@@ -143,7 +143,7 @@ export function Page() {
       <Metadata />
       <Stack gap="6" alignItems="center" w="full" py="8" _print={{ display: 'none' }}>
         <Text textAlign="center" fontSize="4xl" fontWeight="bold">
-          {t('card_list_header', 'All Cards')}
+          {t('card_list_header')}
         </Text>
         <HStack
           gap="4"
@@ -160,39 +160,21 @@ export function Page() {
             positioning={{ sameWidth: true }}
             flex="1"
           >
-            <Select.Label>{t('filter_by_rarity', 'Filter by Rarity')}</Select.Label>
+            <Select.Label>{t('filter_by_rarity')}</Select.Label>
             <Select.Control>
               <Select.Trigger>
-                <Select.ValueText placeholder={t('select_rarity', 'Select Rarity')} />
+                <Select.ValueText placeholder={t('select_rarity')} />
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
               <Select.Content>
                 <Select.ItemGroup id="rarity">
                   <Select.Item item="">
-                    <Select.ItemText>{t('all_rarities', 'All Rarities')}</Select.ItemText>
+                    <Select.ItemText>{t('all_rarities')}</Select.ItemText>
                   </Select.Item>
                   {uniqueRarities.items.map((r) => (
                     <Select.Item key={r.value} item={r}>
-                      <Select.ItemText>
-                        <HStack>
-                          <styled.object
-                            data={getPicUrl(r.value ?? 'mob', 'charaSymbol')}
-                            type="image/webp"
-                            objectFit="contain"
-                            maxWidth="28px"
-                            maxHeight="28px"
-                          >
-                            <styled.img
-                              src={getPicUrl('mob', 'charaSymbol')}
-                              alt={`Style`}
-                              objectFit="contain"
-                              maxHeight="28px"
-                            />
-                          </styled.object>
-                          <Text>{r.label}</Text>
-                        </HStack>
-                      </Select.ItemText>
+                      <Select.ItemText>{r.label}</Select.ItemText>
                     </Select.Item>
                   ))}
                 </Select.ItemGroup>
@@ -207,21 +189,55 @@ export function Page() {
             positioning={{ sameWidth: true }}
             flex="1"
           >
-            <Select.Label>{t('filter_by_character', 'Filter by Character')}</Select.Label>
+            <Select.Label>{t('filter_by_character')}</Select.Label>
             <Select.Control>
               <Select.Trigger>
-                <Select.ValueText placeholder={t('select_character', 'Select Character')} />
+                <HStack>
+                  <styled.object
+                    data={getPicUrl(selectedCharacterId ?? 'mob', 'charaIcon')}
+                    type="image/webp"
+                    objectFit="contain"
+                    maxWidth="28px"
+                    maxHeight="28px"
+                  >
+                    <styled.img
+                      src={getPicUrl('mob', 'charaSymbol')}
+                      alt={`Style`}
+                      objectFit="contain"
+                      maxHeight="28px"
+                    />
+                  </styled.object>
+                  <Select.ValueText placeholder={t('select_character')} />
+                </HStack>
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
               <Select.Content>
                 <Select.ItemGroup id="character">
                   <Select.Item item="">
-                    <Select.ItemText>{t('all_characters', 'All Characters')}</Select.ItemText>
+                    <Select.ItemText>{t('all_characters')}</Select.ItemText>
                   </Select.Item>
                   {uniqueCharacters.items.map((char) => (
                     <Select.Item key={char.value} item={char}>
-                      <Select.ItemText>{char.label}</Select.ItemText>
+                      <Select.ItemText>
+                        <HStack>
+                          <styled.object
+                            data={getPicUrl(char.value ?? 'mob', 'charaIcon')}
+                            type="image/webp"
+                            objectFit="contain"
+                            maxWidth="28px"
+                            maxHeight="28px"
+                          >
+                            <styled.img
+                              src={getPicUrl('mob', 'charaSymbol')}
+                              alt={`Style`}
+                              objectFit="contain"
+                              maxHeight="28px"
+                            />
+                          </styled.object>
+                          <Text>{char.label}</Text>
+                        </HStack>
+                      </Select.ItemText>
                     </Select.Item>
                   ))}
                 </Select.ItemGroup>
@@ -230,7 +246,7 @@ export function Page() {
           </Select.Root>
 
           <Input
-            placeholder={t('filter_by_name', 'Filter by Name/Description')}
+            placeholder={t('filter_by_name')}
             value={characterNameFilter}
             onChange={(e) => setCharacterNameFilter(e.target.value)}
             flex="1.5"
@@ -262,13 +278,11 @@ export function Page() {
             <Table.Root variant="outline" size="md" w="full">
               <Table.Head>
                 <Table.Row>
-                  <Table.Header>{t('table_header_image', 'Image')}</Table.Header>
-                  <Table.Header textAlign="center">
-                    {t('table_header_rarity', 'Rarity')}
-                  </Table.Header>
-                  <Table.Header>{t('table_header_name', 'Name')}</Table.Header>
-                  <Table.Header>{t('table_header_character', 'Character')}</Table.Header>
-                  <Table.Header textAlign="center">{t('table_header_style', 'Style')}</Table.Header>
+                  <Table.Header>{t('table_header_image')}</Table.Header>
+                  <Table.Header textAlign="center">{t('table_header_rarity')}</Table.Header>
+                  <Table.Header>{t('table_header_name')}</Table.Header>
+                  <Table.Header>{t('table_header_character')}</Table.Header>
+                  <Table.Header textAlign="center">{t('table_header_style')}</Table.Header>
                 </Table.Row>
               </Table.Head>
               <Table.Body>
@@ -332,7 +346,7 @@ export function Page() {
             </Table.Root>
           </Box>
         ) : (
-          <Text>{t('no_cards_found', 'No cards found.')}</Text>
+          <Text>{t('no_cards_found')}</Text>
         )}
       </Stack>
     </>
