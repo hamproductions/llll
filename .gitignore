@@ -26,6 +26,8 @@ dist-ssr
 styled-system
  
 data/raw/*
+data/assets/
+data/cards/
 scripts/internal/*
 
 *_report.json
@@ -36,4 +38,14 @@ coverage*
 # release-it
 .release-it.json.cache
 
-public/*
+# Album art still in public but will be moved to GCS
+public/album-art/
+
+# Google Cloud Service Account Key (keep this secure!)
+gcs-key.json
+*.key.json
+
+.env
+
+# Cache directories
+.cache/

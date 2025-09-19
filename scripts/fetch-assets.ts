@@ -121,6 +121,20 @@ export async function processGenericImageAssets(
   logPrefix: string
 ) {
   const imageAssetSourcePath = path.join(fetchedAssetsDir, assetFilename);
+
+  // Check if destination already has this file (early exit optimization)
+  const baseNameWithoutExt = assetFilename.replace(/\.[^.]+$/, ''); // Remove extension
+  const destFileName = `${baseNameWithoutExt}.webp`;
+  const destFilePath = path.join(imagesDestDir, destFileName);
+
+  try {
+    await fs.access(destFilePath);
+    console.log(`Skipping ${logPrefix}: ${destFileName} already exists`);
+    return;
+  } catch (e) {
+    // File doesn't exist, continue processing
+  }
+
   try {
     await fs.access(imageAssetSourcePath);
     const tmpImageProcessingDir = path.join(
@@ -341,8 +355,8 @@ export async function fetchAssets(
   aggressiveSkip: boolean = false
 ): Promise<void> {
   const projectRoot = process.cwd();
-  const publicRoot = path.join(projectRoot, 'public');
-  const tmpBaseDir = path.join(publicRoot, 'tmp_assets_processing');
+  const dataRoot = path.join(projectRoot, 'data');
+  const tmpBaseDir = path.join(dataRoot, 'tmp_assets_processing');
   const cardTmpRoot = path.join(tmpBaseDir, `card_${cardSeriesId}`);
   const fetchedAssetsDir = path.join(cardTmpRoot, 'fetched_raw_assets');
 
@@ -350,11 +364,11 @@ export async function fetchAssets(
   currentCardTmpRoot = cardTmpRoot;
   currentTmpBaseDir = tmpBaseDir;
 
-  const cardPublicDestRoot = path.join(publicRoot, 'cards', String(cardSeriesId));
+  const cardDataDestRoot = path.join(dataRoot, 'cards', String(cardSeriesId));
 
-  const voiceDestDir = path.join(cardPublicDestRoot, 'voice');
-  const imagesDestDir = path.join(cardPublicDestRoot, 'images');
-  const videosDestDir = path.join(cardPublicDestRoot, 'videos');
+  const voiceDestDir = path.join(cardDataDestRoot, 'voice');
+  const imagesDestDir = path.join(cardDataDestRoot, 'images');
+  const videosDestDir = path.join(cardDataDestRoot, 'videos');
 
   await fs.mkdir(fetchedAssetsDir, { recursive: true });
   console.log(`Created temporary directory: ${fetchedAssetsDir}`);
@@ -368,7 +382,7 @@ export async function fetchAssets(
   try {
     if (aggressiveSkip) {
       try {
-        await fs.access(cardPublicDestRoot);
+        await fs.access(cardDataDestRoot);
         console.log(`Aggressive Skip: Card ${cardSeriesId} folder already exists. Skipping.`);
         return;
       } catch (e: any) {

@@ -27,7 +27,10 @@ async function data(pageContext: PageContext) {
   // and are not pre-built:
 
   const db = getDrizzleDb();
-  const cardPageData = await getCardPageData(db, cardSeriesId);
+  // Use pruning to reduce data size while keeping full depth
+  const cardPageData = await getCardPageData(db, cardSeriesId, {
+    pruneEmptyEffects: true
+  });
   return { ...cardPageData };
 }
 

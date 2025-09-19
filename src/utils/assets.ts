@@ -1,7 +1,17 @@
 import { join } from 'path-browserify';
 
 const getAssetUrl = (path: string) => {
-  return join(import.meta.env.PUBLIC_ENV__BASE_URL ?? '/', path);
+  const gcsBaseUrl = import.meta.env.PUBLIC_ENV__GCS_BASE_URL;
+  const localBaseUrl = import.meta.env.PUBLIC_ENV__BASE_URL ?? '/';
+
+  if (gcsBaseUrl) {
+    return `${gcsBaseUrl}/${path}`
+      .replace(/\/+/g, '/')
+      .replace('http:/', 'http://')
+      .replace('https:/', 'https://');
+  }
+
+  return join(localBaseUrl, path);
 };
 export const getPicUrl = (
   id: string,
@@ -19,7 +29,7 @@ export const getPicUrl = (
       case 'itemFrame':
         return `assets/itemframe/itemframe_icon_itemframe_emoji_{id}.webp`;
       case 'skillIcon':
-        return `assets/skillicon/skill_icon_skill_${id}.webp`;
+        return `assets/skillicon/icon_skill_${id}.webp`;
       case 'token':
         return `assets/token/image_card_middle_vertical_${id}.webp`;
       default:

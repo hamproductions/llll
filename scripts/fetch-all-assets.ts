@@ -32,8 +32,8 @@ async function fetchAllAssets() {
     console.log('All assets for all cards have been processed.');
 
     const projectRoot = process.cwd();
-    const publicRoot = path.join(projectRoot, 'public');
-    const tmpBaseDir = path.join(publicRoot, 'tmp_assets_processing');
+    const dataRoot = path.join(projectRoot, 'data');
+    const tmpBaseDir = path.join(dataRoot, 'tmp_assets_processing');
     const dbSqlitePath = path.join(projectRoot, '../', 'data', 'db.sqlite3');
 
     async function fetchAndProcessSpecificAssets(
@@ -41,8 +41,20 @@ async function fetchAllAssets() {
       assetPatternToFetch: string,
       logPrefix: string
     ) {
-      const destDir = path.join(publicRoot, 'assets', assetType);
+      const destDir = path.join(dataRoot, 'assets', assetType);
       await fs.mkdir(destDir, { recursive: true });
+
+      // Check what files already exist in the destination
+      const existingFiles = new Set();
+      try {
+        const destFiles = await fs.readdir(destDir);
+        destFiles.forEach(file => {
+          const baseName = path.basename(file, path.extname(file));
+          existingFiles.add(baseName);
+        });
+      } catch (e) {
+        // Directory might not exist yet, that's OK
+      }
 
       const fetchedAssetsDir = path.join(tmpBaseDir, `fetched_raw_assets_${assetType}`);
       await fs.mkdir(fetchedAssetsDir, { recursive: true });
@@ -68,7 +80,19 @@ async function fetchAllAssets() {
 
       const fetchedFiles = await fs.readdir(fetchedAssetsDir);
       if (fetchedFiles.length > 0) {
+        let skipped = 0;
+        let processed = 0;
+
         for (const assetFilename of fetchedFiles) {
+          // Check if this asset already exists (without extension)
+          const baseAssetName = assetFilename.replace(/\.[^.]+$/, ''); // Remove extension
+
+          if (existingFiles.has(baseAssetName)) {
+            console.log(`Skipping ${assetType}/${assetFilename} - already exists as ${baseAssetName}.webp`);
+            skipped++;
+            continue;
+          }
+
           await processGenericImageAssets(
             assetFilename,
             fetchedAssetsDir,
@@ -77,7 +101,10 @@ async function fetchAllAssets() {
             projectRoot,
             `${assetType}-${assetFilename}`
           );
+          processed++;
         }
+
+        console.log(`${assetType} assets summary: ${processed} processed, ${skipped} skipped (already existed)`);
       } else {
         console.log(`No ${assetType} assets found for the specified pattern.`);
       }
@@ -85,7 +112,7 @@ async function fetchAllAssets() {
     }
 
     // Fetch and process skill icons
-    await fetchAndProcessSpecificAssets('skillicon', 'skill', `[GetAssets-SkillIcon]`);
+    await fetchAndProcessSpecificAssets('skillicon', 'icon_skill_%', `[GetAssets-SkillIcon]`);
 
     // Fetch and process tokens
     await fetchAndProcessSpecificAssets(

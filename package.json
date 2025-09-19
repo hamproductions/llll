@@ -30,10 +30,14 @@
     "install-hooks": "chmod +x .git/hooks/pre-commit && chmod +x scripts/check-version.ts",
     "check-version": "bun scripts/check-version.ts",
     "gh-pages": "bunx gh-pages -d dist/client -b gh-pages",
-    "deploy": "PUBLIC_ENV__BASE_URL=/llll-chart bun run ci:build && bun gh-pages",
-    "test:combo": "bun test ComboCounter"
+    "deploy": "PUBLIC_ENV__BASE_URL=/llll bun run ci:build && bun gh-pages",
+    "test:combo": "bun test ComboCounter",
+    "upload-assets": "node scripts/upload-to-gcs.js",
+    "cache:clear": "node scripts/clear-cache.js"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.14.0",
+    "dotenv": "^16.4.5",
     "@ark-ui/react": "^4.8.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

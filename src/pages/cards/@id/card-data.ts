@@ -2,6 +2,8 @@ import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { eq, inArray, aliasedTable, sql } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import * as schema from '../../../../drizzle/schema';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export type SkillEffectDetailWithRecursion = InferSelectModel<
   typeof schema.cardSkillEffectDetails
@@ -274,7 +276,8 @@ function buildSkillSeriesFromPrefetched(
           effectBase.id,
           state,
           currentDepth + 1,
-          skillRaw.skillLevel
+          skillRaw.skillLevel,
+          new Set() // Start with empty set for each top-level effect
         );
         return { ...effectBase, details: detailsForThisEffect };
       })
@@ -284,7 +287,11 @@ function buildSkillSeriesFromPrefetched(
     return { ...skillRaw, effects: effectsForThisSkill };
   });
 
-  return { series: skillSeriesData, skills: skillsWithEffects, skillIcon: skillSeriesData.skillIcon };
+  return {
+    series: skillSeriesData,
+    skills: skillsWithEffects,
+    skillIcon: skillSeriesData.skillIcon
+  };
 }
 
 function buildEffectDetailsRecursive(
@@ -292,11 +299,18 @@ function buildEffectDetailsRecursive(
   state: PrefetchState,
   depth: number,
   // contextSkillLevel is the skillLevel of the skill whose effect tree is being built.
-  contextSkillLevel: number | null | undefined
+  contextSkillLevel: number | null | undefined,
+  visitedEffects: Set<number> = new Set()
 ): SkillEffectDetailWithRecursion[] {
   if (depth > state.maxDepth) {
     return [];
   }
+
+  // Prevent circular references
+  if (visitedEffects.has(parentEffectId)) {
+    return [];
+  }
+  visitedEffects.add(parentEffectId);
 
   const detailsToProcess = (state.allFetchedDetails.get(String(parentEffectId)) || []).sort(
     (a, b) => String(a.id).localeCompare(String(b.id))
@@ -325,7 +339,8 @@ function buildEffectDetailsRecursive(
             targetEffect.id,
             state,
             depth + 1,
-            contextSkillLevel
+            contextSkillLevel,
+            new Set(visitedEffects) // Pass copy to allow same effect at different depths
           );
           processedDetail.subEffect = { ...targetEffect, details: subEffectProcessedDetails };
         }
@@ -346,7 +361,8 @@ function buildEffectDetailsRecursive(
                     effectId,
                     state,
                     depth + 1,
-                    contextSkillLevel
+                    contextSkillLevel,
+                    new Set(visitedEffects)
                   );
                   subParamsEffectsList.push({ ...subEffectBase, details: subEffectDataDetails });
                 }
@@ -365,7 +381,163 @@ function buildEffectDetailsRecursive(
   return finalProcessedDetails;
 }
 
-export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, cardSeriesId: number) {
+// Helper function to recursively prune detail data
+function pruneEffectDetail(
+  detail: SkillEffectDetailWithRecursion
+): SkillEffectDetailWithRecursion | undefined {
+  // Skip BRANCH_EFFECT_ID details
+  if (detail.skillEffectDetailType?.includes('BRANCH_EFFECT_ID')) {
+    return undefined;
+  }
+
+  // Check if this detail has displayable content
+  const hasSubContent = detail.subEffect || detail.subSeries || detail.subParamsEffects?.length;
+  const isResourceId = detail.skillEffectDetailType?.endsWith('RESOURCE_ID');
+
+  // If no displayable content and not a resource ID, skip this detail
+  if (!hasSubContent && !isResourceId) {
+    return undefined;
+  }
+
+  // Recursively prune sub-structures and remove targetMood
+  const prunedDetail: SkillEffectDetailWithRecursion = {
+    id: detail.id,
+    skillEffectDetailType: detail.skillEffectDetailType,
+    effectValue: detail.effectValue
+    // Explicitly omit targetMood
+  };
+
+  if (detail.subEffect) {
+    const prunedSubEffect = pruneEffect(detail.subEffect);
+    if (prunedSubEffect) {
+      prunedDetail.subEffect = prunedSubEffect;
+    }
+  }
+
+  if (detail.subSeries) {
+    const prunedSubSeries = pruneSkillData(detail.subSeries);
+    if (prunedSubSeries) {
+      prunedDetail.subSeries = prunedSubSeries;
+    }
+  }
+
+  if (detail.subParamsEffects) {
+    const prunedSubParams = detail.subParamsEffects
+      .map((effect) => pruneEffect(effect))
+      .filter((e): e is SkillEffectWithDetails => e !== undefined);
+    if (prunedSubParams.length > 0) {
+      prunedDetail.subParamsEffects = prunedSubParams;
+    }
+  }
+
+  return prunedDetail;
+}
+
+// Helper function to prune effect data
+function pruneEffect(effect: SkillEffectWithDetails): SkillEffectWithDetails | undefined {
+  if (!effect) return undefined;
+
+  const prunedDetails = effect.details
+    .map((detail) => pruneEffectDetail(detail))
+    .filter((d): d is SkillEffectDetailWithRecursion => d !== undefined);
+
+  // Remove effects with actionType 12 if they have no details
+  if (effect.actionType === 12 && prunedDetails.length === 0) {
+    return undefined;
+  }
+
+  // If no details remain after pruning, remove this effect
+  if (prunedDetails.length === 0) {
+    return undefined;
+  }
+
+  return { ...effect, details: prunedDetails };
+}
+
+// Helper function to prune empty or minimal data
+function pruneSkillData(skillInfo: SkillSeriesDetails | undefined): SkillSeriesDetails | undefined {
+  if (!skillInfo) return undefined;
+
+  const prunedSkills = skillInfo.skills
+    .map((skill) => {
+      const prunedEffects = skill.effects
+        .map((effect) => pruneEffect(effect))
+        .filter((e): e is SkillEffectWithDetails => e !== undefined);
+
+      // Keep skills with description or effects
+      if (!skill.description?.trim() && prunedEffects.length === 0) {
+        return undefined;
+      }
+
+      return { ...skill, effects: prunedEffects };
+    })
+    .filter((s): s is SkillWithEffects => s !== undefined);
+
+  // Don't return empty skill series
+  if (prunedSkills.length === 0) {
+    return undefined;
+  }
+
+  return { ...skillInfo, skills: prunedSkills };
+}
+
+// Cache configuration
+const CACHE_DIR = path.join(process.cwd(), '.cache', 'card-data');
+const CACHE_VERSION = 'v2'; // Bump this to invalidate all caches
+
+// Ensure cache directory exists
+function ensureCacheDir() {
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
+}
+
+// Get cache file path for a card series
+function getCachePath(cardSeriesId: number): string {
+  return path.join(CACHE_DIR, `${cardSeriesId}-${CACHE_VERSION}.json`);
+}
+
+// Load data from cache
+function loadFromCache(cardSeriesId: number): any | null {
+  try {
+    const cachePath = getCachePath(cardSeriesId);
+    if (fs.existsSync(cachePath)) {
+      const cacheData = fs.readFileSync(cachePath, 'utf-8');
+      return JSON.parse(cacheData);
+    }
+  } catch (error) {
+    console.error(`Failed to load cache for card ${cardSeriesId}:`, error);
+  }
+  return null;
+}
+
+// Save data to cache
+function saveToCache(cardSeriesId: number, data: any): void {
+  try {
+    ensureCacheDir();
+    const cachePath = getCachePath(cardSeriesId);
+    fs.writeFileSync(cachePath, JSON.stringify(data), 'utf-8');
+  } catch (error) {
+    console.error(`Failed to save cache for card ${cardSeriesId}:`, error);
+  }
+}
+
+export async function getCardPageData(
+  db: BunSQLiteDatabase<typeof schema>,
+  cardSeriesId: number,
+  options: { maxDepth?: number; pruneEmptyEffects?: boolean; useCache?: boolean } = {}
+) {
+  const { maxDepth = 10, pruneEmptyEffects = true, useCache = true } = options;
+
+  // Try to load from cache first
+  if (useCache) {
+    const cachedData = loadFromCache(cardSeriesId);
+    if (cachedData) {
+      console.log(`[Cache HIT] Loaded card data for ${cardSeriesId} from cache`);
+      return cachedData;
+    }
+    console.log(`[Cache MISS] No cache found for card ${cardSeriesId}, fetching from database`);
+  }
   const seriesDetails = await db.query.cardSeries.findFirst({
     where: eq(schema.cardSeries.id, cardSeriesId)
   });
@@ -385,7 +557,7 @@ export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, card
     allFetchedSkillsForSeries: new Map(),
     allFetchedParamsTsv: new Map(),
     db,
-    maxDepth: 10
+    maxDepth // Use configurable maxDepth
   };
 
   const initialSeriesToPrefetch = new Set<number>();
@@ -430,9 +602,13 @@ export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, card
       );
 
       const schoolIdolStageSkills = {
-        normalSkillInfo,
-        specialAppealInfo,
-        attributeSkillInfo
+        normalSkillInfo: pruneEmptyEffects ? pruneSkillData(normalSkillInfo) : normalSkillInfo,
+        specialAppealInfo: pruneEmptyEffects
+          ? pruneSkillData(specialAppealInfo)
+          : specialAppealInfo,
+        attributeSkillInfo: pruneEmptyEffects
+          ? pruneSkillData(attributeSkillInfo)
+          : attributeSkillInfo
       };
 
       const schoolIdolShowSkills = {
@@ -500,7 +676,7 @@ export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, card
     where: eq(schema.limitBreakMaterialRate.cardSeriesId, cardSeriesId)
   });
 
-  return {
+  const result = {
     seriesDetails,
     cardDataList,
     skillLevelUpMaterials,
@@ -509,6 +685,14 @@ export async function getCardPageData(db: BunSQLiteDatabase<typeof schema>, card
     styleVoices: styleVoicesData,
     limitBreakMaterialRates
   } as const;
+
+  // Save to cache if caching is enabled
+  if (useCache) {
+    saveToCache(cardSeriesId, result);
+    console.log(`[Cache SAVE] Saved card data for ${cardSeriesId} to cache`);
+  }
+
+  return result;
 }
 
 export async function getSchoolIdolShowSkills(

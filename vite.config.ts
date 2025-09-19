@@ -51,11 +51,12 @@ export default defineConfig({
     }
   },
   build: {
-    sourcemap: isProduction,
+    sourcemap: !isProduction,
     cssMinify: isProduction,
     minify: isProduction,
     commonjsOptions: {
       exclude: ['react/cjs', 'react-dom/cjs']
-    }
+    },
+    emptyOutDir: true
   }
 });
