@@ -89,3 +89,19 @@ export const getCardVideoUrl = (id: number, type: string, variant?: string): str
   }
   return getAssetUrl(join(`cards/${id}/videos`, filename));
 };
+
+export const getStoryScriptUrl = (scriptId: number | string): string => {
+  return getAssetUrl(join('story', `story_main_${scriptId}.txt`));
+};
+
+export const getStoryBGMUrl = (bgmId: string): string => {
+  return getAssetUrl(join('music', `${bgmId}.webm`));
+};
+
+export const getStoryVoiceUrl = (voiceId: string): string => {
+  return getAssetUrl(join('story', 'voice', `${voiceId}.webm`));
+};
+
+export const getStoryBackgroundUrl = (bgId: string): string => {
+  return getAssetUrl(join('story', 'backgrounds', `${bgId}.webp`));
+};

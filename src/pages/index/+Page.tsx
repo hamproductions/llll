@@ -33,10 +33,15 @@ export function Page() {
               {title}
             </Text>
             <Text fontSize="xl">{description}</Text>
-            <HStack justifyContent="center">
+            <HStack justifyContent="center" flexWrap="wrap" gap="3">
               <Link href="/cards">
                 <Button size="lg" variant="solid">
                   {t('home_page.explore_cards')}
+                </Button>
+              </Link>
+              <Link href="/stories">
+                <Button size="lg" variant="solid">
+                  {t('home_page.explore_stories', 'Explore Stories')}
                 </Button>
               </Link>
               <Link href="https://hamproductions.github.io/llll-chart/" target="_blank">
