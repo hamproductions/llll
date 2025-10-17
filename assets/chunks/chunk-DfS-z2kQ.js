@@ -1,0 +1,1 @@
+import{g as f,p as l,r,d as m,s as x}from"./chunk-CHmHHQj9.js";const o={transform(t){return t}},P=(t={})=>{const s=f(o,t);return o.transform(s,l)},g=r.forwardRef(function(s,e){const[n,a]=m(s,[]),p=P(n),c={ref:e,...p,...a};return r.createElement(x.div,c)});export{g as B};
