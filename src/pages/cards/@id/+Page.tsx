@@ -10,7 +10,6 @@ import { SchoolIdolStageSkillsSection } from './components/SchoolIdolStageSkills
 import { AdditionalInfoSection } from './components/AdditionalInfoSection';
 import { SkillMaterialsSection } from './components/SkillMaterialsSection';
 import { LimitBreakSelector } from './components/LimitBreakSelector';
-import { createListCollection } from '~/components/ui/select';
 import { Box, Stack, styled } from 'styled-system/jsx';
 import { getCardUrl } from '~/utils/assets';
 import { Tabs } from '~/components/ui/tabs';
@@ -29,8 +28,8 @@ export function Page() {
 
   const basicCardInfo = cardDataList?.[0];
 
-  const specialAppealMaterials = (skillLevelUpMaterials ?? []).filter((m) => m.skillType === 1);
-  const appealMaterials = (skillLevelUpMaterials ?? []).filter((m) => m.skillType === 2);
+  const specialAppealMaterials = (skillLevelUpMaterials ?? []).filter((m: any) => m.skillType === 1);
+  const appealMaterials = (skillLevelUpMaterials ?? []).filter((m: any) => m.skillType === 2);
 
   const [selectedLimitBreakIndex, setSelectedLimitBreakIndex] = useState(0);
   if (!basicCardInfo) {
@@ -40,13 +39,13 @@ export function Page() {
   const selectedCardData = cardDataList[selectedLimitBreakIndex];
 
   const limitBreakOptions = useMemo(() => {
-    if (!cardDataList) return createListCollection({ items: [] });
-    return createListCollection({
-      items: cardDataList.map((_, index) => ({
+    if (!cardDataList) return { items: [] };
+    return {
+      items: cardDataList.map((_: any, index: number) => ({
         value: String(index),
         label: t('limit_break', { level: index })
       }))
-    });
+    };
   }, [cardDataList, t]);
 
   const TABS = [

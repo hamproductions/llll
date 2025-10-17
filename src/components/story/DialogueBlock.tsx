@@ -15,7 +15,7 @@ export function DialogueBlock({ line }: DialogueBlockProps) {
   function CharacterIcon({ size }: { size: string }) {
     return characterStyle.characterId ? (
       <styled.img
-        src={getPicUrl(characterStyle.characterId, 'charaIcon')}
+        src={getPicUrl(String(characterStyle.characterId), 'charaIcon')}
         alt={line.characterName}
         borderRadius="full"
         width={size}

@@ -6,7 +6,7 @@ import { advSeries, advDatas } from '../../../../../drizzle/schema';
 import { eq, asc } from 'drizzle-orm';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { parseStoryScript } from '~/utils/storyParser';
+import { parseStoryScript, type StoryLine } from '~/utils/storyParser';
 import { getCharacterStyle } from '~/utils/characterStyles';
 
 export { data };
@@ -53,7 +53,7 @@ async function data(pageContext: PageContext) {
   const nextChapter = currentIndex < allChapters.length - 1 ? allChapters[currentIndex + 1] : null;
 
   // Load and parse story script file
-  let parsedScript = [];
+  let parsedScript: StoryLine[] = [];
   if (chapter?.scriptId) {
     try {
       const scriptPath = join(

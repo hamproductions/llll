@@ -403,8 +403,8 @@ function pruneEffectDetail(
   const prunedDetail: SkillEffectDetailWithRecursion = {
     id: detail.id,
     skillEffectDetailType: detail.skillEffectDetailType,
-    effectValue: detail.effectValue
-    // Explicitly omit targetMood
+    effectValue: detail.effectValue,
+    targetMood: null
   };
 
   if (detail.subEffect) {
