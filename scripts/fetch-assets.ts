@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { readableStreamToArrayBuffer } from 'bun';
+import sharp from 'sharp';
 
 // Helper function to run shell commands
 export async function runCommand(
@@ -15,8 +16,7 @@ export async function runCommand(
     cwd: cwd || process.cwd(),
     stdout: 'pipe',
     stderr: 'pipe',
-    //@ts-expect-error env
-    env: { ...process.env, PYTHONUNBUFFERED: '1' } // Useful for python scripts as any
+    env: process.env as Record<string, string>
   });
 
   const stdoutBuffer = await readableStreamToArrayBuffer(proc.stdout);
@@ -178,7 +178,8 @@ export async function processGenericImageAssets(
           continue;
         }
 
-        await runCommand('ffmpeg', ['-i', sourceFilePath, '-q:v', '85', destFilePath]);
+        console.log(`Converting ${sourceFilePath} to ${destFilePath} using sharp`);
+        await sharp(sourceFilePath).webp({ quality: 85 }).toFile(destFilePath);
       }
     }
     console.log(`Processed image ${assetFilename} moved to: ${imagesDestDir}`);
@@ -322,7 +323,6 @@ let currentCardTmpRoot: string | null = null;
 async function cleanupTempDirs() {
   if (currentCardTmpRoot) {
     try {
-      console.log(`Cleaning up temporary directory: ${currentCardTmpRoot}`);
       await fs.rm(currentCardTmpRoot, { recursive: true, force: true });
     } catch (e) {
       console.warn(
@@ -334,7 +334,6 @@ async function cleanupTempDirs() {
     try {
       const filesInTmpBase = await fs.readdir(currentTmpBaseDir).catch(() => []);
       if (filesInTmpBase.length === 0) {
-        console.log(`Cleaning up base temporary directory: ${currentTmpBaseDir}`);
         await fs.rmdir(currentTmpBaseDir);
       }
     } catch (e) {
@@ -371,7 +370,6 @@ export async function fetchAssets(
   const videosDestDir = path.join(cardDataDestRoot, 'videos');
 
   await fs.mkdir(fetchedAssetsDir, { recursive: true });
-  console.log(`Created temporary directory: ${fetchedAssetsDir}`);
 
   const assetsToFetch: string[] = [];
   const dbSqlitePath = path.join(projectRoot, '../', 'data', 'db.sqlite3');
@@ -380,21 +378,6 @@ export async function fetchAssets(
   let deckFrameCharaImageFilename: string | undefined;
 
   try {
-    if (aggressiveSkip) {
-      try {
-        await fs.access(cardDataDestRoot);
-        console.log(`Aggressive Skip: Card ${cardSeriesId} folder already exists. Skipping.`);
-        return;
-      } catch (e: any) {
-        if (e.code === 'ENOENT') {
-          // Directory doesn't exist, continue processing
-        } else {
-          throw e; // Re-throw other errors
-        }
-      }
-    }
-    console.log(`Starting asset processing for cardSeriesId: ${cardSeriesId}`);
-
     // Voice Assets
     voiceAssetFilename = `vo_card_${cardSeriesId}.acb`;
     const voiceOutputPrefix = `vo_card_${cardSeriesId}`; // Output files start with this

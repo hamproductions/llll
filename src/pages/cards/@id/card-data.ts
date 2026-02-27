@@ -234,9 +234,8 @@ function buildSkillSeriesFromPrefetched(
   skillSeriesId: number | null,
   state: PrefetchState,
   currentDepth: number = 0,
-  // filterToSkillLevel is used when building a sub-series,
-  // to ensure it only contains skills relevant to the parent skill's level.
-  filterToSkillLevel?: number | null
+  filterToSkillLevel?: number | null,
+  expandedTokenSeries: Set<number> = new Set()
 ): SkillSeriesDetails | undefined {
   if (!skillSeriesId || currentDepth > state.maxDepth) {
     return undefined;
@@ -277,7 +276,8 @@ function buildSkillSeriesFromPrefetched(
           state,
           currentDepth + 1,
           skillRaw.skillLevel,
-          new Set() // Start with empty set for each top-level effect
+          new Set(),
+          expandedTokenSeries
         );
         return { ...effectBase, details: detailsForThisEffect };
       })
@@ -298,9 +298,9 @@ function buildEffectDetailsRecursive(
   parentEffectId: number,
   state: PrefetchState,
   depth: number,
-  // contextSkillLevel is the skillLevel of the skill whose effect tree is being built.
   contextSkillLevel: number | null | undefined,
-  visitedEffects: Set<number> = new Set()
+  visitedEffects: Set<number> = new Set(),
+  expandedTokenSeries: Set<number> = new Set()
 ): SkillEffectDetailWithRecursion[] {
   if (depth > state.maxDepth) {
     return [];
@@ -316,6 +316,18 @@ function buildEffectDetailsRecursive(
     (a, b) => String(a.id).localeCompare(String(b.id))
   );
 
+  // Pre-collect direct token card series at this effect level so branch sub-effects
+  // know they're already handled and won't duplicate them
+  const effectTokenSeries = new Set(expandedTokenSeries);
+  for (const d of detailsToProcess) {
+    const dt = d.skillEffectDetailType;
+    if (dt && d.effectValue !== null && dt.includes('SERIES_ID')) {
+      if (dt.includes('TOKEN_CARD_SKILL_CARD') || dt.includes('TOKEN_CARD_ABILITY')) {
+        effectTokenSeries.add(d.effectValue);
+      }
+    }
+  }
+
   const finalProcessedDetails: SkillEffectDetailWithRecursion[] = [];
   for (const detail of detailsToProcess) {
     const detailType = detail.skillEffectDetailType;
@@ -323,24 +335,37 @@ function buildEffectDetailsRecursive(
     const processedDetail: SkillEffectDetailWithRecursion = { ...detail };
 
     if (detailType && recursiveId !== null) {
-      if (detailType.includes('SERIES_ID'))
-        // When building a sub-series, filter it by the contextSkillLevel.
-        processedDetail.subSeries = buildSkillSeriesFromPrefetched(
-          recursiveId,
-          state,
-          depth + 1,
-          contextSkillLevel
-        );
+      if (detailType.includes('SERIES_ID')) {
+        const isTokenCardSkill = detailType.includes('TOKEN_CARD_SKILL_CARD');
+        const isTokenCardAbility = detailType.includes('TOKEN_CARD_ABILITY');
+        const isTokenCardSeries = isTokenCardSkill || isTokenCardAbility;
+        if (isTokenCardSeries && expandedTokenSeries.has(recursiveId)) {
+          // Already expanded by an ancestor — skip to prevent cycles
+        } else {
+          const levelFilter = isTokenCardSkill
+            ? contextSkillLevel
+            : isTokenCardAbility
+              ? 1
+              : contextSkillLevel;
+          processedDetail.subSeries = buildSkillSeriesFromPrefetched(
+            recursiveId,
+            state,
+            depth + 1,
+            levelFilter,
+            effectTokenSeries
+          );
+        }
+      }
       else if (detailType.includes('EFFECT_ID')) {
         const targetEffect = state.allFetchedEffects.get(recursiveId);
         if (targetEffect) {
-          // Pass the contextSkillLevel down for nested effects.
           const subEffectProcessedDetails = buildEffectDetailsRecursive(
             targetEffect.id,
             state,
             depth + 1,
             contextSkillLevel,
-            new Set(visitedEffects) // Pass copy to allow same effect at different depths
+            new Set(visitedEffects),
+            effectTokenSeries
           );
           processedDetail.subEffect = { ...targetEffect, details: subEffectProcessedDetails };
         }
@@ -356,13 +381,13 @@ function buildEffectDetailsRecursive(
               .forEach((effectId) => {
                 const subEffectBase = state.allFetchedEffects.get(effectId);
                 if (subEffectBase) {
-                  // Pass the contextSkillLevel down for nested param effects.
                   const subEffectDataDetails = buildEffectDetailsRecursive(
                     effectId,
                     state,
                     depth + 1,
                     contextSkillLevel,
-                    new Set(visitedEffects)
+                    new Set(visitedEffects),
+                    effectTokenSeries
                   );
                   subParamsEffectsList.push({ ...subEffectBase, details: subEffectDataDetails });
                 }
@@ -385,17 +410,11 @@ function buildEffectDetailsRecursive(
 function pruneEffectDetail(
   detail: SkillEffectDetailWithRecursion
 ): SkillEffectDetailWithRecursion | undefined {
-  // Skip BRANCH_EFFECT_ID details
-  if (detail.skillEffectDetailType?.includes('BRANCH_EFFECT_ID')) {
-    return undefined;
-  }
-
-  // Check if this detail has displayable content
   const hasSubContent = detail.subEffect || detail.subSeries || detail.subParamsEffects?.length;
   const isResourceId = detail.skillEffectDetailType?.endsWith('RESOURCE_ID');
+  const isTokenCard = detail.skillEffectDetailType?.includes('TOKEN_CARD');
 
-  // If no displayable content and not a resource ID, skip this detail
-  if (!hasSubContent && !isResourceId) {
+  if (!hasSubContent && !isResourceId && !isTokenCard) {
     return undefined;
   }
 
@@ -483,7 +502,7 @@ function pruneSkillData(skillInfo: SkillSeriesDetails | undefined): SkillSeriesD
 
 // Cache configuration
 const CACHE_DIR = path.join(process.cwd(), '.cache', 'card-data');
-const CACHE_VERSION = 'v2'; // Bump this to invalidate all caches
+const CACHE_VERSION = 'v1'; // Bump this to invalidate all caches
 
 // Ensure cache directory exists
 function ensureCacheDir() {

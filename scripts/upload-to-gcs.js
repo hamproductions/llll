@@ -115,8 +115,11 @@ async function uploadBatch(batch, startIndex, totalFiles) {
 
 async function deleteBatch(batch) {
   const results = await Promise.allSettled(
-    batch.map(fileName =>
-      bucket.file(fileName).delete().then(() => ({ fileName, success: true }))
+    batch.map((fileName) =>
+      bucket
+        .file(fileName)
+        .delete()
+        .then(() => ({ fileName, success: true }))
     )
   );
 
@@ -137,7 +140,13 @@ async function deleteBatch(batch) {
   return { successes, failures };
 }
 
-async function uploadDirectory(localDir, gcsPrefix = '', concurrency = 10, syncDelete = true, dryRun = false) {
+async function uploadDirectory(
+  localDir,
+  gcsPrefix = '',
+  concurrency = 10,
+  syncDelete = true,
+  dryRun = false
+) {
   const files = [];
   for await (const filePath of walkDir(localDir)) {
     files.push(filePath);
@@ -193,7 +202,7 @@ async function uploadDirectory(localDir, gcsPrefix = '', concurrency = 10, syncD
   if (dryRun) {
     if (filesToDelete.length > 0) {
       console.log(`\n📝 Would delete ${filesToDelete.length} orphaned files from GCS:`);
-      filesToDelete.slice(0, 10).forEach(file => console.log(`  - ${file}`));
+      filesToDelete.slice(0, 10).forEach((file) => console.log(`  - ${file}`));
       if (filesToDelete.length > 10) {
         console.log(`  ... and ${filesToDelete.length - 10} more files`);
       }
@@ -201,9 +210,11 @@ async function uploadDirectory(localDir, gcsPrefix = '', concurrency = 10, syncD
 
     if (filesToUpload.length > 0) {
       console.log(`\n📝 Would upload ${filesToUpload.length} new files:`);
-      filesToUpload.slice(0, 10).forEach(({ filePath, destination }) =>
-        console.log(`  - ${relative(process.cwd(), filePath)} → ${destination}`)
-      );
+      filesToUpload
+        .slice(0, 10)
+        .forEach(({ filePath, destination }) =>
+          console.log(`  - ${relative(process.cwd(), filePath)} → ${destination}`)
+        );
       if (filesToUpload.length > 10) {
         console.log(`  ... and ${filesToUpload.length - 10} more files`);
       }
@@ -241,7 +252,9 @@ async function uploadDirectory(localDir, gcsPrefix = '', concurrency = 10, syncD
       const progress = Math.min(i + concurrency, filesToUpload.length);
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       const rate = (uploaded / elapsed).toFixed(1);
-      console.log(`Upload progress: ${progress}/${filesToUpload.length} (${uploaded} uploaded, ${rate} files/sec)`);
+      console.log(
+        `Upload progress: ${progress}/${filesToUpload.length} (${uploaded} uploaded, ${rate} files/sec)`
+      );
     }
   }
 
@@ -323,7 +336,7 @@ Examples:
   let syncDelete = true;
   let dryRun = false;
 
-  const concurrencyFlagIndex = args.findIndex(arg => arg === '--concurrency' || arg === '-c');
+  const concurrencyFlagIndex = args.findIndex((arg) => arg === '--concurrency' || arg === '-c');
   if (concurrencyFlagIndex !== -1 && args[concurrencyFlagIndex + 1]) {
     customConcurrency = parseInt(args[concurrencyFlagIndex + 1]);
     args.splice(concurrencyFlagIndex, 2);
@@ -350,7 +363,8 @@ Examples:
     const directories = [
       { local: 'data/assets', gcs: 'assets' },
       { local: 'data/cards', gcs: 'cards' },
-      { local: 'public/album-art', gcs: 'album-art' }
+      { local: 'public/album-art', gcs: 'album-art' },
+      { local: 'data/story/voice', gcs: 'story/voice' }
     ];
 
     for (const { local, gcs } of directories) {

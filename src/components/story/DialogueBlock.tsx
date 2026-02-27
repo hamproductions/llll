@@ -1,14 +1,16 @@
 import { Box, HStack, Stack } from 'styled-system/jsx';
 import { Text } from '~/components/ui/text';
 import type { StoryLine } from '~/utils/storyParser';
-import { getPicUrl } from '~/utils/assets';
+import { getPicUrl, getStoryVoiceUrl } from '~/utils/assets';
 import { styled } from 'styled-system/jsx';
+import { VoicePlayer } from './VoicePlayer';
 
 interface DialogueBlockProps {
   line: StoryLine;
+  index: number;
 }
 
-export function DialogueBlock({ line }: DialogueBlockProps) {
+export function DialogueBlock({ line, index }: DialogueBlockProps) {
   const hasCharacterName = !!line.characterName;
   const characterStyle = line.characterStyle ?? { color: '#8B7D6B', lightColor: '#D3C5B8' };
 
@@ -20,17 +22,20 @@ export function DialogueBlock({ line }: DialogueBlockProps) {
         borderRadius="full"
         width={size}
         height={size}
+        flexShrink={0}
+        objectFit="cover"
       />
     ) : null;
   }
 
   function CharacterLabel({ fontSize }: { fontSize: string }) {
     return (
-      <HStack gap="2">
-        <CharacterIcon size={fontSize === 'xs' ? '24px' : '32px'} />
+      <HStack gap="2" alignItems="center">
+        <CharacterIcon size={fontSize === 'xs' ? '20px' : '24px'} />
         <Text color={characterStyle.color} fontSize={fontSize} fontWeight="semibold">
           {line.characterName}
         </Text>
+        {line.voiceId && <VoicePlayer voiceId={line.voiceId} voiceUrl={getStoryVoiceUrl(line.voiceId)} index={index} />}
       </HStack>
     );
   }
@@ -78,17 +83,24 @@ export function DialogueBlock({ line }: DialogueBlockProps) {
         </HStack>
       ) : (
         /* No character - full width dialogue */
-        <Box
-          borderLeftWidth="3px"
-          borderLeftColor={characterStyle.color}
-          borderRadius="lg"
-          w="full"
-          p="4"
-          bg="bg.muted"
-          borderLeftStyle="solid"
-        >
-          <Text dangerouslySetInnerHTML={{ __html: line.content }} fontSize="md" lineHeight="1.7" />
-        </Box>
+        <Stack gap="2" w="full">
+          {line.voiceId && (
+            <Box>
+              <VoicePlayer voiceId={line.voiceId} voiceUrl={getStoryVoiceUrl(line.voiceId)} index={index} />
+            </Box>
+          )}
+          <Box
+            borderLeftWidth="3px"
+            borderLeftColor={characterStyle.color}
+            borderRadius="lg"
+            w="full"
+            p="4"
+            bg="bg.muted"
+            borderLeftStyle="solid"
+          >
+            <Text dangerouslySetInnerHTML={{ __html: line.content }} fontSize="md" lineHeight="1.7" />
+          </Box>
+        </Stack>
       )}
     </Stack>
   );

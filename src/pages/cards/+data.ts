@@ -12,6 +12,31 @@ async function data() {
   const db = drizzle(sqlite);
 
   try {
+    // Subquery to get the earliest StartTime for each CardSeriesId from GachaSeries
+    // Check all 6 pickup columns
+    const seriesReleaseDates = db
+      .select({
+        series_id: sql<number>`p.cardSeriesId`.as('series_id'),
+        startTime: sql`MIN(p.startTime)`.as('startTime')
+      })
+      .from(
+        sql`(
+        SELECT PickUpCardSeriesId_1 as cardSeriesId, StartTime FROM GachaSeries WHERE PickUpCardSeriesId_1 != 0
+        UNION ALL
+        SELECT PickUpCardSeriesId_2 as cardSeriesId, StartTime FROM GachaSeries WHERE PickUpCardSeriesId_2 != 0
+        UNION ALL
+        SELECT PickUpCardSeriesId_3 as cardSeriesId, StartTime FROM GachaSeries WHERE PickUpCardSeriesId_3 != 0
+        UNION ALL
+        SELECT PickUpCardSeriesId_4 as cardSeriesId, StartTime FROM GachaSeries WHERE PickUpCardSeriesId_4 != 0
+        UNION ALL
+        SELECT PickUpCardSeriesId_5 as cardSeriesId, StartTime FROM GachaSeries WHERE PickUpCardSeriesId_5 != 0
+        UNION ALL
+        SELECT PickUpCardSeriesId_6 as cardSeriesId, StartTime FROM GachaSeries WHERE PickUpCardSeriesId_6 != 0
+      ) as p`
+      )
+      .groupBy(sql`p.cardSeriesId`)
+      .as('series_release_dates');
+
     // Use a common table expression (CTE) with a window function to rank cards within each series
     const rankedCards = db.$with('ranked_cards').as(
       db
@@ -25,6 +50,10 @@ async function data() {
           evolveTimes: cardDatas.evolveTimes,
           style: cardDatas.style,
           mood: cardDatas.mood,
+          maxSmile: cardDatas.maxSmile,
+          maxPure: cardDatas.maxPure,
+          maxCool: cardDatas.maxCool,
+          maxMental: cardDatas.maxMental,
           // Assign a row number based on EvolveTimes (and id for tie-breaking) within each CardSeriesId
           rn: sql<number>`row_number() OVER (PARTITION BY ${cardDatas.cardSeriesId} ORDER BY ${cardDatas.evolveTimes} ASC, ${cardDatas.id} ASC)`.as(
             'rn'
@@ -46,9 +75,17 @@ async function data() {
         rarity: rankedCards.rarity,
         evolveTimes: rankedCards.evolveTimes,
         style: rankedCards.style,
-        mood: rankedCards.mood
+        mood: rankedCards.mood,
+        maxSmile: rankedCards.maxSmile,
+        maxPure: rankedCards.maxPure,
+        maxCool: rankedCards.maxCool,
+        maxMental: rankedCards.maxMental,
+        releaseDate: sql`COALESCE(${seriesReleaseDates.startTime}, '0000-00-00 00:00:00')`.as(
+          'releaseDate'
+        )
       })
       .from(rankedCards)
+      .leftJoin(seriesReleaseDates, eq(rankedCards.cardSeriesId, seriesReleaseDates.series_id))
       .where(eq(rankedCards.rn, 1));
 
     const rarities = await db

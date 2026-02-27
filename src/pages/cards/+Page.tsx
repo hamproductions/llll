@@ -16,7 +16,36 @@ export function Page() {
   const { cards, rarities, characters }: PageData = useData();
   const [selectedRarity, setSelectedRarity] = useState<string>('');
   const [characterNameFilter, setCharacterNameFilter] = useState<string>('');
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>('releaseDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const sortOptions = createListCollection({
+    items: [
+      { label: t('sort_by_newest', 'Newest'), value: 'releaseDate' },
+      { label: t('sort_by_smile', 'Smile'), value: 'maxSmile' },
+      { label: t('sort_by_pure', 'Pure'), value: 'maxPure' },
+      { label: t('sort_by_cool', 'Cool'), value: 'maxCool' },
+      { label: t('sort_by_mental', 'Mental'), value: 'maxMental' },
+      { label: t('sort_by_rarity', 'Rarity'), value: 'rarity' },
+      { label: t('sort_by_name', 'Name'), value: 'name' }
+    ]
+  });
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      // Default to desc for stats and date, asc for names
+      setSortOrder(field === 'name' ? 'asc' : 'desc');
+    }
+  };
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    if (sortBy !== field) return null;
+    return sortOrder === 'asc' ? ' ▲' : ' ▼';
+  };
 
   // Map for Rarity ID to Name
   const rarityMap = useMemo(() => {
@@ -88,9 +117,9 @@ export function Page() {
     });
   }, [cards, characters, characterMap]);
 
-  const filteredCards = useMemo(() => {
+  const filteredAndSortedCards = useMemo(() => {
     if (!cards) return [];
-    return cards.filter((card) => {
+    const filtered = cards.filter((card) => {
       const rarityMatch =
         selectedRarity === '' || (card.rarity != null && String(card.rarity) === selectedRarity);
       const nameMatch =
@@ -98,15 +127,36 @@ export function Page() {
         card.name?.toLowerCase().includes(characterNameFilter.toLowerCase()) ||
         card.description?.toLowerCase().includes(characterNameFilter.toLowerCase());
       const characterMatch =
-        selectedCharacterId === '' ||
-        (card.charactersId != null && String(card.charactersId) === selectedCharacterId);
+        selectedCharacterIds.length === 0 ||
+        (card.charactersId != null && selectedCharacterIds.includes(String(card.charactersId)));
       return rarityMatch && nameMatch && characterMatch;
     });
-  }, [cards, selectedRarity, characterNameFilter, selectedCharacterId]);
+
+    return [...filtered].sort((a, b) => {
+      let valA = a[sortBy as keyof typeof a];
+      let valB = b[sortBy as keyof typeof b];
+
+      if (valA === null || valA === undefined) return sortOrder === 'asc' ? -1 : 1;
+      if (valB === null || valB === undefined) return sortOrder === 'asc' ? 1 : -1;
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        const comparison = valA.localeCompare(valB);
+        if (comparison !== 0) return sortOrder === 'asc' ? comparison : -comparison;
+      } else {
+        const comparison = (valA as number) - (valB as number);
+        if (comparison !== 0) return sortOrder === 'asc' ? comparison : -comparison;
+      }
+
+      // Tie-breaker: sort by ID descending for "newest" feeling
+      return b.id - a.id;
+    });
+  }, [cards, selectedRarity, characterNameFilter, selectedCharacterIds, sortBy, sortOrder]);
 
   const isAnyFilterActive = useMemo(() => {
-    return selectedRarity !== '' || characterNameFilter !== '' || selectedCharacterId !== '';
-  }, [selectedRarity, characterNameFilter, selectedCharacterId]);
+    return (
+      selectedRarity !== '' || characterNameFilter !== '' || selectedCharacterIds.length > 0
+    );
+  }, [selectedRarity, characterNameFilter, selectedCharacterIds]);
 
   const resultSummaryText = useMemo(() => {
     if (!cards) {
@@ -117,12 +167,12 @@ export function Page() {
     }
 
     if (isAnyFilterActive) {
-      if (filteredCards.length > 0) {
+      if (filteredAndSortedCards.length > 0) {
         return t(
           'filtered_cards_match_summary',
           'Showing {{count}} of {{total}} cards matching your criteria.',
           {
-            count: filteredCards.length,
+            count: filteredAndSortedCards.length,
             total: cards.length
           }
         );
@@ -136,7 +186,8 @@ export function Page() {
         count: cards.length
       });
     }
-  }, [cards, filteredCards, isAnyFilterActive, t]);
+  }, [cards, filteredAndSortedCards, isAnyFilterActive, t]);
+
 
   return (
     <>
@@ -184,29 +235,32 @@ export function Page() {
 
           <Select.Root
             collection={uniqueCharacters}
-            value={[selectedCharacterId]}
-            onValueChange={(details) => setSelectedCharacterId(details.value[0] ?? '')}
+            value={selectedCharacterIds}
+            onValueChange={(details) => setSelectedCharacterIds(details.value)}
             positioning={{ sameWidth: true }}
             flex="1"
+            multiple
           >
             <Select.Label>{t('filter_by_character')}</Select.Label>
             <Select.Control>
               <Select.Trigger>
                 <HStack>
-                  <styled.object
-                    data={getPicUrl(selectedCharacterId ?? 'mob', 'charaIcon')}
-                    type="image/webp"
-                    objectFit="contain"
-                    maxWidth="28px"
-                    maxHeight="28px"
-                  >
-                    <styled.img
-                      src={getPicUrl('mob', 'charaSymbol')}
-                      alt={`Style`}
+                  {selectedCharacterIds.length === 1 && (
+                    <styled.object
+                      data={getPicUrl(selectedCharacterIds[0], 'charaIcon')}
+                      type="image/webp"
                       objectFit="contain"
+                      maxWidth="28px"
                       maxHeight="28px"
-                    />
-                  </styled.object>
+                    >
+                      <styled.img
+                        src={getPicUrl('mob', 'charaSymbol')}
+                        alt={`Style`}
+                        objectFit="contain"
+                        maxHeight="28px"
+                      />
+                    </styled.object>
+                  )}
                   <Select.ValueText placeholder={t('select_character')} />
                 </HStack>
               </Select.Trigger>
@@ -214,9 +268,6 @@ export function Page() {
             <Select.Positioner>
               <Select.Content>
                 <Select.ItemGroup id="character">
-                  <Select.Item item="">
-                    <Select.ItemText>{t('all_characters')}</Select.ItemText>
-                  </Select.Item>
                   {uniqueCharacters.items.map((char) => (
                     <Select.Item key={char.value} item={char}>
                       <Select.ItemText>
@@ -238,6 +289,33 @@ export function Page() {
                           <Text>{char.label}</Text>
                         </HStack>
                       </Select.ItemText>
+                      <Select.ItemIndicator>✓</Select.ItemIndicator>
+                    </Select.Item>
+                  ))}
+                </Select.ItemGroup>
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+
+          <Select.Root
+            collection={sortOptions}
+            value={[sortBy]}
+            onValueChange={(details) => setSortBy(details.value[0] ?? 'id')}
+            positioning={{ sameWidth: true }}
+            flex="1"
+          >
+            <Select.Label>{t('sort_by', 'Sort By')}</Select.Label>
+            <Select.Control>
+              <Select.Trigger>
+                <Select.ValueText placeholder={t('select_sort')} />
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content>
+                <Select.ItemGroup id="sort">
+                  {sortOptions.items.map((opt) => (
+                    <Select.Item key={opt.value} item={opt}>
+                      <Select.ItemText>{opt.label}</Select.ItemText>
                     </Select.Item>
                   ))}
                 </Select.ItemGroup>
@@ -249,7 +327,7 @@ export function Page() {
             placeholder={t('filter_by_name')}
             value={characterNameFilter}
             onChange={(e) => setCharacterNameFilter(e.target.value)}
-            flex="1.5"
+            flex="1"
           />
         </HStack>
 
@@ -265,7 +343,7 @@ export function Page() {
           </Box>
         )}
 
-        {filteredCards && filteredCards.length > 0 ? (
+        {filteredAndSortedCards && filteredAndSortedCards.length > 0 ? (
           <Box
             borderRadius="lg"
             borderWidth="1px"
@@ -278,15 +356,70 @@ export function Page() {
             <Table.Root variant="outline" size="md" w="full">
               <Table.Head>
                 <Table.Row>
-                  <Table.Header>{t('table_header_image')}</Table.Header>
-                  <Table.Header textAlign="center">{t('table_header_rarity')}</Table.Header>
-                  <Table.Header>{t('table_header_name')}</Table.Header>
-                  <Table.Header>{t('table_header_character')}</Table.Header>
-                  <Table.Header textAlign="center">{t('table_header_style')}</Table.Header>
+                  <Table.Header cursor="pointer" onClick={() => handleSort('releaseDate')}>
+                    {t('table_header_image')}
+                    <SortIndicator field="releaseDate" />
+                  </Table.Header>
+                  <Table.Header
+                    textAlign="center"
+                    cursor="pointer"
+                    onClick={() => handleSort('rarity')}
+                  >
+                    {t('table_header_rarity')}
+                    <SortIndicator field="rarity" />
+                  </Table.Header>
+                  <Table.Header cursor="pointer" onClick={() => handleSort('name')}>
+                    {t('table_header_name')}
+                    <SortIndicator field="name" />
+                  </Table.Header>
+                  <Table.Header cursor="pointer" onClick={() => handleSort('charactersId')}>
+                    {t('table_header_character')}
+                    <SortIndicator field="charactersId" />
+                  </Table.Header>
+                  <Table.Header
+                    textAlign="center"
+                    cursor="pointer"
+                    onClick={() => handleSort('style')}
+                  >
+                    {t('table_header_style')}
+                    <SortIndicator field="style" />
+                  </Table.Header>
+                  <Table.Header
+                    textAlign="center"
+                    color="pink.500"
+                    cursor="pointer"
+                    onClick={() => handleSort('maxSmile')}
+                  >
+                    S<SortIndicator field="maxSmile" />
+                  </Table.Header>
+                  <Table.Header
+                    textAlign="center"
+                    color="emerald.500"
+                    cursor="pointer"
+                    onClick={() => handleSort('maxPure')}
+                  >
+                    P<SortIndicator field="maxPure" />
+                  </Table.Header>
+                  <Table.Header
+                    textAlign="center"
+                    color="cyan.500"
+                    cursor="pointer"
+                    onClick={() => handleSort('maxCool')}
+                  >
+                    C<SortIndicator field="maxCool" />
+                  </Table.Header>
+                  <Table.Header
+                    textAlign="center"
+                    color="orange.500"
+                    cursor="pointer"
+                    onClick={() => handleSort('maxMental')}
+                  >
+                    M<SortIndicator field="maxMental" />
+                  </Table.Header>
                 </Table.Row>
               </Table.Head>
               <Table.Body>
-                {filteredCards.map((card) => (
+                {filteredAndSortedCards.map((card) => (
                   <Table.Row key={card.id} _hover={{ bg: 'bg.subtle' }}>
                     <Table.Cell>
                       {card.cardSeriesId ? (
@@ -339,6 +472,18 @@ export function Page() {
                         objectFit="contain"
                         maxHeight="28px"
                       />
+                    </Table.Cell>
+                    <Table.Cell textAlign="center" color="pink.500" fontWeight="bold">
+                      {card.maxSmile}
+                    </Table.Cell>
+                    <Table.Cell textAlign="center" color="emerald.500" fontWeight="bold">
+                      {card.maxPure}
+                    </Table.Cell>
+                    <Table.Cell textAlign="center" color="cyan.500" fontWeight="bold">
+                      {card.maxCool}
+                    </Table.Cell>
+                    <Table.Cell textAlign="center" color="orange.500" fontWeight="bold">
+                      {card.maxMental}
                     </Table.Cell>
                   </Table.Row>
                 ))}

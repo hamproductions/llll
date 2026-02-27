@@ -57,6 +57,9 @@ export default defineConfig({
     commonjsOptions: {
       exclude: ['react/cjs', 'react-dom/cjs']
     },
+    rollupOptions: {
+      external: ['bun:sqlite', 'bun']
+    },
     emptyOutDir: true
   }
 });

@@ -12,12 +12,14 @@ import { DialogueBlock } from '~/components/story/DialogueBlock';
 import { NarrationBlock } from '~/components/story/NarrationBlock';
 import { BGMIndicator } from '~/components/story/BGMIndicator';
 import { SceneSeparator } from '~/components/story/SceneSeparator';
+import { VoicePlaybackProvider, useVoicePlayback } from '~/components/story/VoicePlaybackContext';
 
-export function Page() {
+function StoryContent() {
   const { t } = useTranslation();
   const { series, chapter, parsedScript, prevChapter, nextChapter, seriesId }: PageData =
     useData();
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const { playAll, isPlayingAll } = useVoicePlayback();
 
   const handleCopyMarkdown = async () => {
     const chapterTitle = chapter?.name ?? 'Story';
@@ -52,20 +54,29 @@ export function Page() {
       <Stack gap="6" w="full" py="8" _print={{ display: 'none' }}>
         {/* Header */}
         <Stack gap="4" w="full" maxW="5xl" mx="auto" px={{ base: '4', md: '0' }}>
-          <HStack justifyContent="space-between" w="full">
+          <HStack justifyContent="space-between" w="full" flexWrap="wrap" gap="2">
             <Link href={`/stories/${seriesId}`}>
               <Button variant="ghost" size="sm">
                 ← {t('back_to_series', 'Back to Series')}
               </Button>
             </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyMarkdown}
-              disabled={parsedScript.length === 0}
-            >
-              {copyStatus === 'copied' ? '✓ Copied!' : '📋 Copy as Markdown'}
-            </Button>
+            <HStack gap="2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => playAll()}
+              >
+                {isPlayingAll ? '⏹ Stop All' : '▶ Play All Voices'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyMarkdown}
+                disabled={parsedScript.length === 0}
+              >
+                {copyStatus === 'copied' ? '✓ Copied!' : '📋 Copy as Markdown'}
+              </Button>
+            </HStack>
           </HStack>
           <Stack gap="1" alignItems="center">
             <Text fontSize="sm" color="fg.muted">
@@ -89,7 +100,7 @@ export function Page() {
               {parsedScript.map((line, index) => {
                 switch (line.type) {
                   case 'dialogue':
-                    return <DialogueBlock key={index} line={line} />;
+                    return <DialogueBlock key={index} line={line} index={index} />;
                   case 'narration':
                     return <NarrationBlock key={index} line={line} />;
                   case 'bgm':
@@ -173,5 +184,13 @@ export function Page() {
         </Stack>
       </Stack>
     </>
+  );
+}
+
+export function Page() {
+  return (
+    <VoicePlaybackProvider>
+      <StoryContent />
+    </VoicePlaybackProvider>
   );
 }

@@ -24,10 +24,8 @@ dist-ssr
 *.sw?
 
 styled-system
- 
-data/raw/*
-data/assets/
-data/cards/
+
+data/* 
 scripts/internal/*
 
 *_report.json

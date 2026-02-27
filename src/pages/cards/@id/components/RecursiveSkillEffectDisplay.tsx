@@ -5,6 +5,25 @@ import { Box, HStack, Stack, styled } from 'styled-system/jsx';
 import { Text } from '~/components/ui/text';
 import { getPicUrl } from '~/utils/assets';
 
+function findTokenResourceId(details: SkillEffectDetailWithRecursion[]): number | string | null {
+  const resourceId = details.find((d) =>
+    d.skillEffectDetailType?.endsWith('RESOURCE_ID')
+  )?.effectValue;
+  if (resourceId != null) {
+    const hasExpandedSeries = details.some(
+      (d) => d.subSeries && d.skillEffectDetailType?.includes('TOKEN_CARD')
+    );
+    if (hasExpandedSeries) return resourceId;
+  }
+  for (const d of details) {
+    if (d.subEffect) {
+      const found = findTokenResourceId(d.subEffect.details);
+      if (found != null) return found;
+    }
+  }
+  return null;
+}
+
 interface RecursiveSkillEffectDisplayProps {
   detail: SkillEffectDetailWithRecursion;
   level?: number;
@@ -81,9 +100,7 @@ export function RecursiveSkillEffectDisplay({
             ))
             .filter(Boolean);
 
-          const resourceId = effect.details.find((d) =>
-            d.skillEffectDetailType?.endsWith('RESOURCE_ID')
-          )?.effectValue;
+          const resourceId = findTokenResourceId(effect.details);
 
           const hasEffectContent = showEffectDetails || (effectDetails && effectDetails.length > 0);
           if (!hasEffectContent) return null;
@@ -161,9 +178,7 @@ export function RecursiveSkillEffectDisplay({
         ))
         .filter(Boolean);
 
-      const resourceId = subEffect.details.find((d) =>
-        d.skillEffectDetailType?.endsWith('RESOURCE_ID')
-      )?.effectValue;
+      const resourceId = findTokenResourceId(subEffect.details);
 
       const hasSubEffectDetailsToShow =
         showEffectDetails || (subEffectInnerDetails && subEffectInnerDetails.length > 0);

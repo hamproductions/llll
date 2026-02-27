@@ -42,6 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <HStack>
               <Link href={'/'}>{t(`navigation.home`)}</Link>
               <Link href={'/cards'}>{t(`navigation.cards`)}</Link>
+              <Link href={'/stories'}>{t(`navigation.stories`, 'Stories')}</Link>
             </HStack>
             <HStack justifySelf="flex-end">
               <LanguageToggle />
