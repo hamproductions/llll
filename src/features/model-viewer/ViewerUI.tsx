@@ -119,9 +119,9 @@ export function ViewerUI() {
         <Stack gap="2">
           <Text fontWeight="semibold" fontSize="sm">Pose</Text>
           <Grid columns={3} gap="1">
-            {['idle', 'pose_020', 'pose_050', 'pose_070', 'pose_100', 'pose_120', 'pose_130', 'pose_150', 'pose_160'].map((p) => (
+            {['idle', 'stand_020', 'stand_070', 'stand_100', 'stand_130', 'stand_150', 'gesture_300', 'gesture_400', 'gesture_500', 'hips_711', 'pose_800', 'seated'].map((p) => (
               <Button key={p} size="xs" variant={activePose === p ? 'solid' : 'outline'} onClick={() => setActivePose(p)}>
-                {p.replace('pose_', '#')}
+                {p}
               </Button>
             ))}
           </Grid>
