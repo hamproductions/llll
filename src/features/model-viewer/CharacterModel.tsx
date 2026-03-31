@@ -86,7 +86,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
         child.material = createToonMaterial({ mainTex, shadowTex });
 
-        if (child.parent) {
+        if (child.parent && !child.isSkinnedMesh) {
           const outline = new THREE.Mesh(child.geometry, createOutlineMaterial());
           outline.name = `${meshName}_outline`;
           outline.renderOrder = -1;
