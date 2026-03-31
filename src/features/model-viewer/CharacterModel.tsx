@@ -63,7 +63,8 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         if (child.name.includes('_outline')) return;
 
         const meshName = child.name;
-        const texConfig = textures[meshName] || textures['*'] || {};
+        const baseName = meshName.replace(/_\d+$/, '');
+        const texConfig = textures[meshName] || textures[baseName] || textures['*'] || {};
         const mainTex = loadTex(texConfig.mainTex);
         const shadowTex = loadTex(texConfig.shadowTex);
 
@@ -86,12 +87,13 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         child.material = createToonMaterial({ mainTex, shadowTex });
 
         if (child.parent) {
-          const outlineGeo = child.geometry.clone();
-          outlineGeo.morphAttributes = {};
-          outlineGeo.morphTargetsRelative = false;
-          const outline = new THREE.Mesh(outlineGeo, createOutlineMaterial());
+          const outline = new THREE.Mesh(child.geometry, createOutlineMaterial());
           outline.name = `${meshName}_outline`;
           outline.renderOrder = -1;
+          if (child.morphTargetDictionary) {
+            outline.morphTargetDictionary = child.morphTargetDictionary;
+            outline.morphTargetInfluences = child.morphTargetInfluences;
+          }
           outlines.push({ parent: child.parent, mesh: outline });
         }
       });
