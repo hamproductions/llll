@@ -1,13 +1,14 @@
 // Environment: server
 
-import type { PageContext } from 'vike/types';
-import { getDrizzleDb } from '~/utils/database';
-import { advSeries, advDatas } from '../../../../../drizzle/schema';
-import { eq, asc } from 'drizzle-orm';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
+import type { PageContext } from 'vike/types';
+import { and, eq, asc } from 'drizzle-orm';
+import { advSeries, advDatas } from '../../../../../drizzle/schema';
+import { getDrizzleDb } from '~/utils/database';
 import { parseStoryScript, type StoryLine } from '~/utils/storyParser';
 import { getCharacterStyle } from '~/utils/characterStyles';
+import { filterReleasedContent, isReleasedContent } from '~/utils/release';
 
 export { data };
 
@@ -19,48 +20,45 @@ async function data(pageContext: PageContext) {
   const db = getDrizzleDb();
 
   // Fetch series information
-  const seriesResult = await db
-    .select()
-    .from(advSeries)
-    .where(eq(advSeries.id, seriesId))
-    .limit(1);
+  const seriesResult = await db.select().from(advSeries).where(eq(advSeries.id, seriesId)).limit(1);
 
-  const series = seriesResult[0] ?? null;
+  const series = isReleasedContent(seriesResult[0]?.startTime) ? (seriesResult[0] ?? null) : null;
 
   // Fetch chapter information
   const chapterResult = await db
     .select()
     .from(advDatas)
-    .where(eq(advDatas.id, chapterId))
+    .where(and(eq(advDatas.id, chapterId), eq(advDatas.advSeriesId, seriesId)))
     .limit(1);
 
-  const chapter = chapterResult[0] ?? null;
+  const chapter = isReleasedContent(chapterResult[0]?.startTime)
+    ? (chapterResult[0] ?? null)
+    : null;
 
   // Fetch all chapters for navigation
-  const allChapters = await db
-    .select({
-      id: advDatas.id,
-      orderId: advDatas.orderId,
-      name: advDatas.name
-    })
-    .from(advDatas)
-    .where(eq(advDatas.advSeriesId, seriesId))
-    .orderBy(asc(advDatas.orderId));
+  const allChapters = filterReleasedContent(
+    await db
+      .select({
+        id: advDatas.id,
+        orderId: advDatas.orderId,
+        name: advDatas.name,
+        startTime: advDatas.startTime
+      })
+      .from(advDatas)
+      .where(eq(advDatas.advSeriesId, seriesId))
+      .orderBy(asc(advDatas.orderId)),
+    undefined,
+    (item) => item.startTime
+  );
 
-  // Find prev/next chapters
   const currentIndex = allChapters.findIndex((c) => c.id === chapterId);
   const prevChapter = currentIndex > 0 ? allChapters[currentIndex - 1] : null;
   const nextChapter = currentIndex < allChapters.length - 1 ? allChapters[currentIndex + 1] : null;
 
-  // Load and parse story script file
   let parsedScript: StoryLine[] = [];
-  if (chapter?.scriptId) {
+  if (series && chapter?.scriptId) {
     try {
-      const scriptPath = join(
-        process.cwd(),
-        '../data/story',
-        `story_main_${chapter.scriptId}.txt`
-      );
+      const scriptPath = join(process.cwd(), '../data/story', `story_main_${chapter.scriptId}.txt`);
       const scriptContent = await readFile(scriptPath, 'utf-8');
       const parsed = parseStoryScript(scriptContent);
 

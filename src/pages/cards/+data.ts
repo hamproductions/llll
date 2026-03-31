@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { sql, eq } from 'drizzle-orm';
 import { Database } from 'bun:sqlite'; // Assuming bun:sqlite is available
 import { cardDatas, cardRarities, characters } from '~/../drizzle/schema';
+import { filterReleasedContent } from '~/utils/release';
 
 async function data() {
   const sqlite = new Database(join(import.meta.dirname, '../../../../data/db.sqlite3'));
@@ -102,7 +103,7 @@ async function data() {
       .from(characters);
 
     return {
-      cards,
+      cards: filterReleasedContent(cards, undefined, (card) => card.releaseDate as string | null),
       rarities,
       characters: charactersData
     };

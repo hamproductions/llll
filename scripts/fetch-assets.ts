@@ -365,6 +365,16 @@ export async function fetchAssets(
 
   const cardDataDestRoot = path.join(dataRoot, 'cards', String(cardSeriesId));
 
+  if (aggressiveSkip) {
+    try {
+      await fs.access(cardDataDestRoot);
+      console.log(`Skipping card ${cardSeriesId} (directory already exists)`);
+      return;
+    } catch {
+      // Directory doesn't exist, continue processing
+    }
+  }
+
   const voiceDestDir = path.join(cardDataDestRoot, 'voice');
   const imagesDestDir = path.join(cardDataDestRoot, 'images');
   const videosDestDir = path.join(cardDataDestRoot, 'videos');

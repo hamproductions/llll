@@ -1,8 +1,9 @@
 // Environment: server
 
-import { getDrizzleDb } from '~/utils/database';
-import { advSeries } from '../../../drizzle/schema';
 import { desc } from 'drizzle-orm';
+import { advSeries } from '../../../drizzle/schema';
+import { getDrizzleDb } from '~/utils/database';
+import { filterReleasedContent } from '~/utils/release';
 
 export { data };
 
@@ -23,7 +24,7 @@ async function data() {
     .orderBy(desc(advSeries.id));
 
   return {
-    series
+    series: filterReleasedContent(series, undefined, (item) => item.startTime)
   };
 }
 
