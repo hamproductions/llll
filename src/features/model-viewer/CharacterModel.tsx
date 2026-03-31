@@ -1,4 +1,4 @@
-import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -19,7 +19,6 @@ interface CharacterModelProps {
   textures?: TextureMap;
   expression?: ExpressionData | null;
   expressionFrame?: number;
-  animationName?: string | null;
 }
 
 export interface CharacterModelHandle {
@@ -28,12 +27,10 @@ export interface CharacterModelHandle {
 }
 
 export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelProps>(
-  function CharacterModel({ url, textures = {}, expression, expressionFrame = 0, animationName }, ref) {
+  function CharacterModel({ url, textures = {}, expression, expressionFrame = 0 }, ref) {
     const gltf = useLoader(GLTFLoader, url);
     const groupRef = useRef<THREE.Group>(null);
     const controllerRef = useRef<ExpressionController | null>(null);
-    const mixerRef = useRef<THREE.AnimationMixer | null>(null);
-    const animationsRef = useRef<THREE.AnimationClip[]>([]);
     const textureCache = useRef<Map<string, THREE.Texture>>(new Map());
 
     const loadTex = (path: string | undefined): THREE.Texture | null => {
@@ -103,11 +100,6 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
       outlines.forEach(({ parent, mesh }) => parent.add(mesh));
       controllerRef.current = new ExpressionController(scene);
-      mixerRef.current = new THREE.AnimationMixer(scene);
-      animationsRef.current = gltf.animations || [];
-      (window as any).__modelScene = scene;
-      (window as any).__animations = gltf.animations;
-      (window as any).__expressionCtrl = controllerRef.current;
 
       if (groupRef.current) {
         groupRef.current.clear();
@@ -120,17 +112,6 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       controllerRef.current.applyExpression(expression, expressionFrame);
     }, [expression, expressionFrame]);
 
-    useEffect(() => {
-      if (!mixerRef.current) return;
-      mixerRef.current.stopAllAction();
-      if (!animationName) return;
-      const clip = animationsRef.current.find(c => c.name === animationName);
-      if (clip) {
-        const action = mixerRef.current.clipAction(clip);
-        action.play();
-      }
-    }, [animationName]);
-
     useImperativeHandle(ref, () => ({
       get expressionController() { return controllerRef.current; },
       get group() { return groupRef.current; }
@@ -138,7 +119,6 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
     useFrame((_, delta) => {
       controllerRef.current?.update(delta);
-      mixerRef.current?.update(delta);
     });
 
     return <group ref={groupRef} />;
