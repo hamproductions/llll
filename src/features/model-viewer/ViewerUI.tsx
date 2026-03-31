@@ -5,7 +5,6 @@ import { Text } from '~/components/ui/text';
 import { Viewport } from './Viewport';
 import { CharacterModel, type CharacterModelHandle, type TextureMap } from './CharacterModel';
 import type { ExpressionData } from './ExpressionController';
-import type { BonePose } from './PoseController';
 
 type BgMode = 'dark' | 'light' | 'transparent';
 
@@ -43,8 +42,6 @@ export function ViewerUI() {
   const [showGrid, setShowGrid] = useState(true);
   const [expression, setExpression] = useState<ExpressionData | null>(null);
   const [activeExpr, setActiveExpr] = useState<string>('');
-  const [pose, setPose] = useState<BonePose | null>(null);
-  const [activePose, setActivePose] = useState<string>('');
   const modelRef = useRef<CharacterModelHandle>(null);
 
   const character = CHARACTERS[characterId];
@@ -81,7 +78,6 @@ export function ViewerUI() {
                 url={character.glbUrl}
                 textures={AOI_TEXTURES}
                 expression={expression}
-                pose={pose}
               />
             )}
           </Suspense>
@@ -113,29 +109,6 @@ export function ViewerUI() {
             {EXPRESSIONS.map((expr) => (
               <Button key={expr} size="xs" variant={activeExpr === expr ? 'solid' : 'outline'} onClick={() => handleExpression(expr)}>
                 {expr}
-              </Button>
-            ))}
-          </Grid>
-        </Stack>
-
-        <Stack gap="2">
-          <Text fontWeight="semibold" fontSize="sm">Pose</Text>
-          <Grid columns={2} gap="1">
-            {['standing', 'breathing', 'grip_l0', 'grip_l1'].map((p) => (
-              <Button key={p} size="xs" variant={activePose === p ? 'solid' : 'outline'} onClick={async () => {
-                setActivePose(p);
-                const map: Record<string, string> = {
-                  standing: 'm_00_00010@l_bones',
-                  breathing: 'm_breathing@l_bones',
-                  grip_l0: 'm_left_gripsize_0@l_bones',
-                  grip_l1: 'm_left_gripsize_1@l_bones',
-                };
-                try {
-                  const resp = await fetch(`/3d/aoi/motions/${map[p]}.json`);
-                  if (resp.ok) setPose(await resp.json());
-                } catch {}
-              }}>
-                {p}
               </Button>
             ))}
           </Grid>

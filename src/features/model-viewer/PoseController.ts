@@ -5,8 +5,8 @@ export interface BonePose {
   sampleRate: number;
   duration: number;
   bones: Record<string, {
-    euler: [number, number, number];
     quaternion: [number, number, number, number];
+    muscles?: number[];
   }>;
 }
 
@@ -23,30 +23,22 @@ export class PoseController {
         }
       }
     });
+    console.log(`[PoseController] Found ${this.boneMap.size} bones`);
   }
 
   applyPose(pose: BonePose) {
+    const tmpQ = new THREE.Quaternion();
     for (const [boneName, rot] of Object.entries(pose.bones)) {
       const bone = this.boneMap.get(boneName);
       if (!bone) continue;
-
-      const [rx, ry, rz] = rot.euler;
-      bone.rotation.x += THREE.MathUtils.degToRad(rx);
-      bone.rotation.y += THREE.MathUtils.degToRad(ry);
-      bone.rotation.z += THREE.MathUtils.degToRad(rz);
+      const [qx, qy, qz, qw] = rot.quaternion;
+      tmpQ.set(-qx, -qy, qz, qw);
+      bone.quaternion.multiply(tmpQ);
     }
   }
 
   resetPose() {
     if (!this.skeleton) return;
-    for (const bone of this.skeleton.bones) {
-      bone.rotation.set(0, 0, 0);
-      bone.quaternion.identity();
-    }
     this.skeleton.pose();
-  }
-
-  getBoneNames(): string[] {
-    return Array.from(this.boneMap.keys());
   }
 }
