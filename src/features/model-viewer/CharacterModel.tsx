@@ -63,7 +63,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         if (child.name.includes('_outline')) return;
 
         const meshName = child.name;
-        const baseName = meshName.replace(/_\d+$/, '');
+        const baseName = meshName.replace(/[\._]?\d+$/, '');
         const texConfig = textures[meshName] || textures[baseName] || textures['*'] || {};
         const mainTex = loadTex(texConfig.mainTex);
         const shadowTex = loadTex(texConfig.shadowTex);
