@@ -1,0 +1,306 @@
+{
+  "name": "m_left_gripsize_0@l",
+  "sampleRate": 30.0,
+  "duration": 2.4666666984558105,
+  "bones": {
+    "AoiDeA_Spine_01": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_Spine_02": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_Spine_03": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_Neck": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_Head": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LEye": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_REye": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LUpLeg": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.965914,
+        -0.258865
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LLeg": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.642743,
+        -0.766082
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LFoot": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LToeBase": {
+      "quaternion": [
+        0.0,
+        0.0,
+        -0.707107,
+        -0.707107
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_RUpLeg": {
+      "quaternion": [
+        0.0,
+        -0.0,
+        0.965914,
+        -0.258865
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_RLeg": {
+      "quaternion": [
+        0.0,
+        -0.0,
+        0.642743,
+        -0.766082
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_RFoot": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_RToeBase": {
+      "quaternion": [
+        0.0,
+        0.0,
+        -0.707107,
+        -0.707107
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LShoulder": {
+      "quaternion": [
+        0.0,
+        -0.707107,
+        0.0,
+        -0.707107
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LArm": {
+      "quaternion": [
+        0.0,
+        -0.331689,
+        0.24421,
+        -0.911232
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LForeArm": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.642743,
+        -0.766082
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_LHand": {
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_RShoulder": {
+      "quaternion": [
+        -7e-06,
+        -0.7071,
+        7e-06,
+        0.707114
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_RArm": {
+      "quaternion": [
+        -0.0,
+        0.331685,
+        0.244208,
+        -0.911234
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_RForeArm": {
+      "quaternion": [
+        -3e-06,
+        0.0,
+        0.642743,
+        -0.766082
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    },
+    "AoiDeA_RHand": {
+      "quaternion": [
+        -0.0,
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "muscles": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

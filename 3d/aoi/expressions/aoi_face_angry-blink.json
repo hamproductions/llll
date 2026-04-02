@@ -1,0 +1,845 @@
+{
+  "name": "aoi_face_angry-blink",
+  "sampleRate": 60.0,
+  "bindings": [
+    {
+      "blendShape": "Brow_.Eyebrow_Normal",
+      "pathHash": 641780895,
+      "attrHash": 1606004738
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Smile_L",
+      "pathHash": 641780895,
+      "attrHash": 1410755253
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Smile_R",
+      "pathHash": 641780895,
+      "attrHash": 2920896470
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Angry",
+      "pathHash": 641780895,
+      "attrHash": 1298496916
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Sad",
+      "pathHash": 641780895,
+      "attrHash": 1976479639
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Sulk",
+      "pathHash": 641780895,
+      "attrHash": 3045727921
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Drowse",
+      "pathHash": 641780895,
+      "attrHash": 3568869828
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_BitterSmile",
+      "pathHash": 641780895,
+      "attrHash": 2301379335
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Down_L",
+      "pathHash": 641780895,
+      "attrHash": 2970740410
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Down_R",
+      "pathHash": 641780895,
+      "attrHash": 1260313561
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Up_L",
+      "pathHash": 641780895,
+      "attrHash": 3343602653
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Up_R",
+      "pathHash": 641780895,
+      "attrHash": 1027894974
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Forward",
+      "pathHash": 641780895,
+      "attrHash": 2928038931
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_InnerUp",
+      "pathHash": 641780895,
+      "attrHash": 317549049
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_OuterUp",
+      "pathHash": 641780895,
+      "attrHash": 846995896
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_InnerCurveUp",
+      "pathHash": 641780895,
+      "attrHash": 1555491798
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_InnerStraightUP",
+      "pathHash": 641780895,
+      "attrHash": 3182491453
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Straight",
+      "pathHash": 641780895,
+      "attrHash": 3434352131
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_InnerStraightDown",
+      "pathHash": 641780895,
+      "attrHash": 84849015
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime001",
+      "pathHash": 641780895,
+      "attrHash": 3398697282
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime002",
+      "pathHash": 641780895,
+      "attrHash": 1402818808
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime003",
+      "pathHash": 641780895,
+      "attrHash": 614097006
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime004",
+      "pathHash": 641780895,
+      "attrHash": 3137271245
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime005",
+      "pathHash": 641780895,
+      "attrHash": 3455698267
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime006",
+      "pathHash": 641780895,
+      "attrHash": 1425052897
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime007",
+      "pathHash": 641780895,
+      "attrHash": 603432055
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime008",
+      "pathHash": 641780895,
+      "attrHash": 3007887846
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime009",
+      "pathHash": 641780895,
+      "attrHash": 3293546864
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime010",
+      "pathHash": 641780895,
+      "attrHash": 2760376469
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime011",
+      "pathHash": 641780895,
+      "attrHash": 3549376515
+    },
+    {
+      "blendShape": "Brow_.Eyebrow_Anime012",
+      "pathHash": 641780895,
+      "attrHash": 1250320825
+    },
+    {
+      "blendShape": "Eye_.Eyelids_pupil",
+      "pathHash": 2432197937,
+      "attrHash": 3577824733
+    },
+    {
+      "blendShape": "Eye_.Eyelids_pupilSquash",
+      "pathHash": 2432197937,
+      "attrHash": 1002188840
+    },
+    {
+      "blendShape": "Eye_.Eyelids_Anime001",
+      "pathHash": 2432197937,
+      "attrHash": 3705227125
+    },
+    {
+      "blendShape": "Eye_.Eyelids_Anime002",
+      "pathHash": 2432197937,
+      "attrHash": 1171265231
+    },
+    {
+      "blendShape": "Eye_.Eyelids_Anime003",
+      "pathHash": 2432197937,
+      "attrHash": 852960857
+    },
+    {
+      "blendShape": "Eye_.Eyelids_Anime004",
+      "pathHash": 2432197937,
+      "attrHash": 2897458170
+    },
+    {
+      "blendShape": "Eye_.Eyelids_Anime005",
+      "pathHash": 2432197937,
+      "attrHash": 3686040428
+    },
+    {
+      "blendShape": "Eye_.Eyelids_Anime006",
+      "pathHash": 2432197937,
+      "attrHash": 1119736534
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Normal",
+      "pathHash": 1391406486,
+      "attrHash": 2550616567
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_SmileB_L",
+      "pathHash": 1391406486,
+      "attrHash": 3722494534
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_SmileB_R",
+      "pathHash": 1391406486,
+      "attrHash": 670039845
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Smile",
+      "pathHash": 1391406486,
+      "attrHash": 3865516409
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Angry",
+      "pathHash": 1391406486,
+      "attrHash": 606878959
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Sad",
+      "pathHash": 1391406486,
+      "attrHash": 700018228
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Close_L",
+      "pathHash": 1391406486,
+      "attrHash": 2998808517
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Close_R",
+      "pathHash": 1391406486,
+      "attrHash": 1219564198
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Sulk",
+      "pathHash": 1391406486,
+      "attrHash": 4194933538
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Drowse",
+      "pathHash": 1391406486,
+      "attrHash": 319176753
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_BitterSmile",
+      "pathHash": 1391406486,
+      "attrHash": 742402276
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_CloseUnder",
+      "pathHash": 1391406486,
+      "attrHash": 4281645303
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_OpenUnder",
+      "pathHash": 1391406486,
+      "attrHash": 4092893312
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Open",
+      "pathHash": 1391406486,
+      "attrHash": 1202060840
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Straight",
+      "pathHash": 1391406486,
+      "attrHash": 1920077483
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime001",
+      "pathHash": 1391406486,
+      "attrHash": 1951531498
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime002",
+      "pathHash": 1391406486,
+      "attrHash": 3982184528
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime003",
+      "pathHash": 1391406486,
+      "attrHash": 2589745350
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime004",
+      "pathHash": 1391406486,
+      "attrHash": 70841701
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime005",
+      "pathHash": 1391406486,
+      "attrHash": 1933559283
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime006",
+      "pathHash": 1391406486,
+      "attrHash": 3929445449
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime007",
+      "pathHash": 1391406486,
+      "attrHash": 2637276383
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime008",
+      "pathHash": 1391406486,
+      "attrHash": 227457358
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime009",
+      "pathHash": 1391406486,
+      "attrHash": 2055834072
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime010",
+      "pathHash": 1391406486,
+      "attrHash": 441319485
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime011",
+      "pathHash": 1391406486,
+      "attrHash": 1833513131
+    },
+    {
+      "blendShape": "EyeShadow_.Eyelids_Anime012",
+      "pathHash": 1391406486,
+      "attrHash": 4097859857
+    },
+    {
+      "blendShape": "Face_.Eyelids_Normal",
+      "pathHash": 3897456805,
+      "attrHash": 4126365558
+    },
+    {
+      "blendShape": "Face_.Eyelids_SmileB_L",
+      "pathHash": 3897456805,
+      "attrHash": 370910093
+    },
+    {
+      "blendShape": "Face_.Eyelids_SmileB_R",
+      "pathHash": 3897456805,
+      "attrHash": 3960774382
+    },
+    {
+      "blendShape": "Face_.Eyelids_Smile",
+      "pathHash": 3897456805,
+      "attrHash": 3481629548
+    },
+    {
+      "blendShape": "Face_.Eyelids_Angry",
+      "pathHash": 3897456805,
+      "attrHash": 231626490
+    },
+    {
+      "blendShape": "Face_.Eyelids_Sad",
+      "pathHash": 3897456805,
+      "attrHash": 3826573076
+    },
+    {
+      "blendShape": "Face_.Eyelids_Close_L",
+      "pathHash": 3897456805,
+      "attrHash": 678193269
+    },
+    {
+      "blendShape": "Face_.Eyelids_Close_R",
+      "pathHash": 3897456805,
+      "attrHash": 3529725206
+    },
+    {
+      "blendShape": "Face_.Eyelids_Sulk",
+      "pathHash": 3897456805,
+      "attrHash": 3249149531
+    },
+    {
+      "blendShape": "Face_.Eyelids_Drowse",
+      "pathHash": 3897456805,
+      "attrHash": 2129807024
+    },
+    {
+      "blendShape": "Face_.Eyelids_BitterSmile",
+      "pathHash": 3897456805,
+      "attrHash": 3878887676
+    },
+    {
+      "blendShape": "Face_.Eyelids_CloseUnder",
+      "pathHash": 3897456805,
+      "attrHash": 3985583175
+    },
+    {
+      "blendShape": "Face_.Eyelids_OpenUnder",
+      "pathHash": 3897456805,
+      "attrHash": 4287199449
+    },
+    {
+      "blendShape": "Face_.Eyelids_Open",
+      "pathHash": 3897456805,
+      "attrHash": 2080797521
+    },
+    {
+      "blendShape": "Face_.Eyelids_Straight",
+      "pathHash": 3897456805,
+      "attrHash": 3112791904
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime001",
+      "pathHash": 3897456805,
+      "attrHash": 3215548449
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime002",
+      "pathHash": 3897456805,
+      "attrHash": 648032667
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime003",
+      "pathHash": 3897456805,
+      "attrHash": 1369899277
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime004",
+      "pathHash": 3897456805,
+      "attrHash": 3485701294
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime005",
+      "pathHash": 3897456805,
+      "attrHash": 3099894840
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime006",
+      "pathHash": 3897456805,
+      "attrHash": 567145858
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime007",
+      "pathHash": 3897456805,
+      "attrHash": 1456129300
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime008",
+      "pathHash": 3897456805,
+      "attrHash": 3329611909
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime009",
+      "pathHash": 3897456805,
+      "attrHash": 2977097747
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime010",
+      "pathHash": 3897456805,
+      "attrHash": 3518325238
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime011",
+      "pathHash": 3897456805,
+      "attrHash": 2796704096
+    },
+    {
+      "blendShape": "Face_.Eyelids_Anime012",
+      "pathHash": 3897456805,
+      "attrHash": 1069220058
+    }
+  ],
+  "curves": {
+    "Brow_.Eyebrow_Normal": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Smile_L": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Smile_R": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Angry": {
+      "type": "constant",
+      "value": 100.0
+    },
+    "Brow_.Eyebrow_Sad": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Sulk": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Drowse": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_BitterSmile": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Down_L": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Down_R": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Up_L": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Up_R": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Forward": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_InnerUp": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_OuterUp": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_InnerCurveUp": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_InnerStraightUP": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Straight": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_InnerStraightDown": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime001": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime002": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime003": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime004": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime005": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime006": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime007": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime008": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime009": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime010": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime011": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Brow_.Eyebrow_Anime012": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Eye_.Eyelids_pupil": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Eye_.Eyelids_pupilSquash": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Eye_.Eyelids_Anime001": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Eye_.Eyelids_Anime002": {
+      "type": "constant",
+      "value": 100.0
+    },
+    "Eye_.Eyelids_Anime003": {
+      "type": "constant",
+      "value": 100.0
+    },
+    "Eye_.Eyelids_Anime004": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Eye_.Eyelids_Anime005": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Eye_.Eyelids_Anime006": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Normal": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_SmileB_L": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_SmileB_R": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Smile": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Angry": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Sad": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Close_L": {
+      "type": "constant",
+      "value": 100.0
+    },
+    "EyeShadow_.Eyelids_Close_R": {
+      "type": "constant",
+      "value": 100.0
+    },
+    "EyeShadow_.Eyelids_Sulk": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Drowse": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_BitterSmile": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_CloseUnder": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_OpenUnder": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Open": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Straight": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime001": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime002": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime003": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime004": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime005": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime006": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime007": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime008": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime009": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime010": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime011": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "EyeShadow_.Eyelids_Anime012": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Normal": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_SmileB_L": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_SmileB_R": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Smile": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Angry": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Sad": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Close_L": {
+      "type": "constant",
+      "value": 100.0
+    },
+    "Face_.Eyelids_Close_R": {
+      "type": "constant",
+      "value": 100.0
+    },
+    "Face_.Eyelids_Sulk": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Drowse": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_BitterSmile": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_CloseUnder": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_OpenUnder": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Open": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Straight": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime001": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime002": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime003": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime004": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime005": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime006": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime007": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime008": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime009": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime010": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime011": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "Face_.Eyelids_Anime012": {
+      "type": "constant",
+      "value": 0.0
+    }
+  }
+}
