@@ -2,7 +2,7 @@
 import type { CharacterStyle } from './characterStyles';
 
 export interface StoryLine {
-  type: 'dialogue' | 'narration' | 'bgm' | 'se' | 'separator' | 'unknown';
+  type: 'dialogue' | 'narration' | 'bgm' | 'bg' | 'se' | 'separator' | 'unknown';
   content: string;
   voiceId?: string;
   characterName?: string;
@@ -175,6 +175,16 @@ export function parseScriptLine(line: string): StoryLine | null {
     };
   }
 
+  // Parse background change
+  const bgMatch = trimmed.match(/^\[背景表示\s+(story_bg_image_\d+)/);
+  if (bgMatch) {
+    return {
+      type: 'bg',
+      content: bgMatch[1],
+      raw: trimmed
+    };
+  }
+
   // Skip 3D, camera, and visual novel rendering commands for now
   if (
     trimmed.match(/^\[キャラ/) ||
@@ -187,7 +197,7 @@ export function parseScriptLine(line: string): StoryLine | null {
     trimmed.match(/^\[ノベル背景更新\]/) ||
     trimmed.match(/^\[ノベルテキスト削除\]/)
   ) {
-    return null; // Skip these for static view
+    return null;
   }
 
   // Unknown command - return as unknown type for debugging

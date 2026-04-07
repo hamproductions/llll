@@ -14,10 +14,12 @@ export type {
 } from './card-data';
 
 import type { PageContext } from 'vike/types';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { getCardPageData } from './card-data';
 import { getDrizzleDb } from '~/utils/database';
 import { isReleasedContent } from '~/utils/release';
+import { characters, cardRarities } from '../../../../drizzle/schema';
+import { getCharacterDisplayName } from '~/utils/game';
 
 async function data(pageContext: PageContext) {
   const { id: cardSeriesIdString } = pageContext.routeParams;
@@ -67,7 +69,51 @@ async function data(pageContext: PageContext) {
   const cardPageData = await getCardPageData(db, cardSeriesId, {
     pruneEmptyEffects: true
   });
-  return { ...cardPageData };
+  if (!cardPageData.cardDataList) {
+    return {
+      seriesDetails: null,
+      cardDataList: [],
+      skillLevelUpMaterials: [],
+      limitBreakMaterials: [],
+      styleMovies: [],
+      styleVoices: [],
+      limitBreakMaterialRates: [],
+      rarityMap: {},
+      character: null
+    };
+  }
+  const primaryCard = cardPageData.cardDataList[0];
+  const characterRow =
+    primaryCard?.charactersId != null
+      ? (
+          await db
+            .select({
+              id: characters.id,
+              nameFirst: characters.nameFirst,
+              nameLast: characters.nameLast,
+              displayName: characters.fa43Ca79C
+            })
+            .from(characters)
+            .where(eq(characters.id, primaryCard.charactersId))
+            .limit(1)
+        )[0]
+      : null;
+
+  const rarities = await db
+    .select({ id: cardRarities.id, rarityName: cardRarities.rarityName })
+    .from(cardRarities);
+  const rarityMap = Object.fromEntries(rarities.map((r) => [r.id, r.rarityName ?? String(r.id)]));
+
+  return {
+    ...cardPageData,
+    rarityMap,
+    character: characterRow
+      ? {
+          ...characterRow,
+          displayLabel: getCharacterDisplayName(characterRow)
+        }
+      : null
+  };
 }
 
 export type PageData = Awaited<ReturnType<typeof data>>;

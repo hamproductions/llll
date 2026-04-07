@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { Wrap } from 'styled-system/jsx';
-import type { Locale } from '~/i18n';
+import { STORAGE_KEY, type Locale } from '~/i18n';
 
 export function LanguageToggle() {
   const { i18n } = useTranslation();
 
   const currentLanguage = i18n.language;
   const handleSetLocale = (locale: Locale) => {
+    localStorage.setItem(STORAGE_KEY, locale);
     void i18n.changeLanguage(locale);
   };
 

@@ -1,130 +1,177 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useData } from 'vike-react/useData';
-import type { PageData } from './+data';
-import { Text } from '~/components/ui/text';
+import { Box, Grid, HStack, Stack, styled } from 'styled-system/jsx';
 import { Metadata } from '~/components/layout/Metadata';
-import { Box, Stack, HStack } from 'styled-system/jsx';
-import { Link } from '~/components/ui/link';
-import { Table } from '~/components/ui/table';
 import { Input } from '~/components/ui/input';
+import { Link } from '~/components/ui/link';
+import { Text } from '~/components/ui/text';
+import { getStoryMonthlyImageUrl, getStoryPartImageUrl } from '~/utils/assets';
+import type { PageData } from './+data';
+
 
 export function Page() {
   const { t } = useTranslation();
-  const { series }: PageData = useData();
-  const [searchFilter, setSearchFilter] = useState<string>('');
+  const { series } = useData<PageData>();
+  const [searchFilter, setSearchFilter] = useState('');
+
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   const filteredSeries = useMemo(() => {
-    if (!series) return [];
+    const normalizedFilter = searchFilter.trim().toLowerCase();
+
     return series.filter((story) => {
-      const nameMatch =
-        searchFilter === '' ||
-        story.name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        story.description?.toLowerCase().includes(searchFilter.toLowerCase());
-      return nameMatch;
-    });
-  }, [series, searchFilter]);
-
-  const isFilterActive = useMemo(() => {
-    return searchFilter !== '';
-  }, [searchFilter]);
-
-  const resultSummaryText = useMemo(() => {
-    if (!series) {
-      return '';
-    }
-    if (series.length === 0) {
-      return t('no_stories_available', 'No stories available.');
-    }
-
-    if (isFilterActive) {
-      if (filteredSeries.length > 0) {
-        return t(
-          'filtered_stories_summary',
-          'Showing {{count}} of {{total}} stories matching your criteria.',
-          {
-            count: filteredSeries.length,
-            total: series.length
-          }
-        );
-      } else {
-        return t('no_stories_match_filters', 'No stories match your criteria.');
+      if (normalizedFilter === '') {
+        return true;
       }
-    } else {
-      return t('all_stories_shown', 'Showing all {{count}} stories.', {
-        count: series.length
-      });
-    }
-  }, [series, filteredSeries, isFilterActive, t]);
+
+      return [story.name, story.description, story.firstChapterName, String(story.id)]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(normalizedFilter));
+    });
+  }, [searchFilter, series]);
+
+  const totalPages = Math.ceil(filteredSeries.length / pageSize);
+  const pageStories = filteredSeries.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchFilter]);
 
   return (
     <>
       <Metadata />
       <Stack gap="6" alignItems="center" w="full" py="8" _print={{ display: 'none' }}>
-        <Text textAlign="center" fontSize="4xl" fontWeight="bold">
-          {t('story_list_header', 'Stories')}
-        </Text>
-        <HStack
-          gap="4"
-          alignItems="flex-end"
-          w="full"
-          maxW="5xl"
-          mx="auto"
-          px={{ base: '4', md: '0' }}
-        >
+        <Stack gap="2" alignItems="center" w="full" maxW="6xl" px={{ base: '4', md: '0' }}>
+          <Text textAlign="center" fontSize="4xl" fontWeight="bold">
+            {t('story_list_header', 'Stories')}
+          </Text>
+          <Text color="fg.muted" textAlign="center" maxW="3xl">
+            {t(
+              'story_list_description',
+              'Browse story arcs and read every chapter from the beginning.'
+            )}
+          </Text>
+        </Stack>
+
+        <HStack gap="4" w="full" maxW="6xl" px={{ base: '4', md: '0' }}>
           <Input
-            placeholder={t('filter_by_name', 'Filter by name...')}
+            placeholder={t('filter_stories', 'Search stories...')}
             value={searchFilter}
-            onChange={(e) => setSearchFilter(e.target.value)}
-            flex="1"
+            onChange={(event) => setSearchFilter(event.target.value)}
           />
         </HStack>
 
-        {resultSummaryText && (
-          <Box w="full" maxW="5xl" px={{ base: '4', md: '0' }}>
-            <Text color="fg.muted" textAlign="right" fontSize="sm">
-              {resultSummaryText}
-            </Text>
-          </Box>
-        )}
+        <Box w="full" maxW="6xl" px={{ base: '4', md: '0' }}>
+          <Text color="fg.muted" textAlign="right" fontSize="sm">
+            {t('filtered_stories_summary', 'Showing {{count}} of {{total}} stories.', {
+              count: filteredSeries.length,
+              total: series.length
+            })}
+          </Text>
+        </Box>
 
-        {filteredSeries && filteredSeries.length > 0 ? (
-          <Box
-            borderRadius="lg"
-            borderWidth="1px"
-            w="full"
-            maxW="5xl"
-            mx="auto"
-            p="0"
-            overflowX="auto"
-          >
-            <Table.Root variant="outline" size="md" w="full">
-              <Table.Head>
-                <Table.Row>
-                  <Table.Header>{t('table_header_name', 'Name')}</Table.Header>
-                  <Table.Header>{t('table_header_description', 'Description')}</Table.Header>
-                </Table.Row>
-              </Table.Head>
-              <Table.Body>
-                {filteredSeries.map((story) => (
-                  <Table.Row key={story.id} _hover={{ bg: 'bg.subtle' }}>
-                    <Table.Cell>
-                      <Link href={`/stories/${story.id}`} _hover={{ textDecoration: 'underline' }}>
+        <Grid
+          gridTemplateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }}
+          gap="4"
+          w="full"
+          maxW="6xl"
+          px={{ base: '4', md: '0' }}
+        >
+          {pageStories.map((story) => {
+            const heroScriptId = story.firstChapterScriptId ?? story.latestChapterScriptId;
+            const coverUrl = getStoryMonthlyImageUrl(story.id);
+            const fallbackUrl = heroScriptId ? getStoryPartImageUrl(heroScriptId) : undefined;
+
+            return (
+              <Link
+                key={story.id}
+                href={`/stories/${story.id}`}
+                display="block"
+                borderRadius="xl"
+                overflow="hidden"
+                transition="all 0.2s"
+                _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+              >
+                <Box overflow="hidden" borderRadius="xl" bg="bg.subtle">
+                  <styled.img
+                    src={coverUrl}
+                    alt={story.name ?? ''}
+                    w="full"
+                    display="block"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (fallbackUrl && !img.dataset.triedFallback) {
+                        img.dataset.triedFallback = '1';
+                        img.src = fallbackUrl;
+                      }
+                    }}
+                  />
+                  <Box p="3">
+                    <Stack gap="1">
+                      <Text fontSize={{ base: 'sm', md: 'md' }} fontWeight="bold" lineClamp="2">
                         {story.name}
-                      </Link>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Text fontSize="sm" color="fg.muted">
-                        {story.description}
                       </Text>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Root>
-          </Box>
-        ) : (
-          <Text>{t('no_stories_found', 'No stories found.')}</Text>
+                      <Text color="fg.muted" fontSize="xs">
+                        {story.chapterCount} {t('parts', 'Parts')}
+                      </Text>
+                    </Stack>
+                  </Box>
+                </Box>
+              </Link>
+            );
+          })}
+        </Grid>
+
+        {totalPages > 1 && (
+          <HStack gap="2" flexWrap="wrap" justifyContent="center">
+            {page > 1 && (
+              <Box
+                as="button"
+                px="3"
+                py="1"
+                borderRadius="md"
+                borderWidth="1px"
+                fontSize="sm"
+                cursor="pointer"
+                onClick={() => setPage(page - 1)}
+              >
+                ←
+              </Box>
+            )}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Box
+                key={p}
+                as="button"
+                px="3"
+                py="1"
+                borderRadius="md"
+                borderWidth="1px"
+                fontSize="sm"
+                cursor="pointer"
+                bg={p === page ? 'bg.subtle' : 'transparent'}
+                fontWeight={p === page ? 'bold' : 'normal'}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </Box>
+            ))}
+            {page < totalPages && (
+              <Box
+                as="button"
+                px="3"
+                py="1"
+                borderRadius="md"
+                borderWidth="1px"
+                fontSize="sm"
+                cursor="pointer"
+                onClick={() => setPage(page + 1)}
+              >
+                →
+              </Box>
+            )}
+          </HStack>
         )}
       </Stack>
     </>

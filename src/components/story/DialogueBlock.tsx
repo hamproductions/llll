@@ -14,52 +14,29 @@ export function DialogueBlock({ line, index }: DialogueBlockProps) {
   const hasCharacterName = !!line.characterName;
   const characterStyle = line.characterStyle ?? { color: '#8B7D6B', lightColor: '#D3C5B8' };
 
-  function CharacterIcon({ size }: { size: string }) {
-    return characterStyle.characterId ? (
-      <styled.img
-        src={getPicUrl(String(characterStyle.characterId), 'charaIcon')}
-        alt={line.characterName}
-        borderRadius="full"
-        width={size}
-        height={size}
-        flexShrink={0}
-        objectFit="cover"
-      />
-    ) : null;
-  }
-
-  function CharacterLabel({ fontSize }: { fontSize: string }) {
-    return (
-      <HStack gap="2" alignItems="center">
-        <CharacterIcon size={fontSize === 'xs' ? '20px' : '24px'} />
-        <Text color={characterStyle.color} fontSize={fontSize} fontWeight="semibold">
-          {line.characterName}
-        </Text>
-        {line.voiceId && <VoicePlayer voiceId={line.voiceId} voiceUrl={getStoryVoiceUrl(line.voiceId)} index={index} />}
-      </HStack>
-    );
-  }
-
   return (
-    <Stack gap="2" w="full" maxW="4xl" my="3" mx="auto">
+    <Stack gap="2" w="full" maxW="4xl" my="3" mx="auto" px={{ base: '4', md: '0' }}>
       {hasCharacterName ? (
         <HStack gap="3" alignItems="flex-start">
-          {/* Character indicator - desktop */}
-          <Box
-            display={{ base: 'none', md: 'block' }}
-            flexShrink="0"
-            minW="120px"
-            pt="1"
-            textAlign="right"
-          >
-            <Box display="flex" justifyContent="flex-end">
-              <CharacterLabel fontSize="sm" />
-            </Box>
+          <Box flexShrink={0} pt="2" display={{ base: 'none', md: 'flex' }} alignItems="center" gap="2">
+            {characterStyle.characterId && (
+              <styled.img
+                src={getPicUrl(String(characterStyle.characterId), 'charaIcon')}
+                alt={line.characterName}
+                borderRadius="full"
+                w="40px"
+                h="40px"
+                flexShrink={0}
+                objectFit="cover"
+              />
+            )}
+            <Text color={characterStyle.color} fontSize="sm" fontWeight="semibold" whiteSpace="nowrap">
+              {line.characterName}
+            </Text>
+            {line.voiceId && <VoicePlayer voiceId={line.voiceId} voiceUrl={getStoryVoiceUrl(line.voiceId)} index={index} />}
           </Box>
 
-          {/* Dialogue bubble */}
           <Box
-            position="relative"
             flex="1"
             borderLeftWidth="3px"
             borderLeftColor={characterStyle.color}
@@ -68,12 +45,24 @@ export function DialogueBlock({ line, index }: DialogueBlockProps) {
             bg="bg.muted"
             borderLeftStyle="solid"
           >
-            {/* Character indicator - mobile */}
-            <Box display={{ base: 'block', md: 'none' }} mb="2">
-              <CharacterLabel fontSize="xs" />
-            </Box>
+            <HStack display={{ base: 'flex', md: 'none' }} gap="2" alignItems="center" mb="2">
+              {characterStyle.characterId && (
+                <styled.img
+                  src={getPicUrl(String(characterStyle.characterId), 'charaIcon')}
+                  alt={line.characterName}
+                  borderRadius="full"
+                  w="32px"
+                  h="32px"
+                  flexShrink={0}
+                  objectFit="cover"
+                />
+              )}
+              <Text color={characterStyle.color} fontSize="xs" fontWeight="semibold">
+                {line.characterName}
+              </Text>
+              {line.voiceId && <VoicePlayer voiceId={line.voiceId} voiceUrl={getStoryVoiceUrl(line.voiceId)} index={index} />}
+            </HStack>
 
-            {/* Dialogue text */}
             <Text
               dangerouslySetInnerHTML={{ __html: line.content }}
               fontSize="md"
@@ -82,7 +71,6 @@ export function DialogueBlock({ line, index }: DialogueBlockProps) {
           </Box>
         </HStack>
       ) : (
-        /* No character - full width dialogue */
         <Stack gap="2" w="full">
           {line.voiceId && (
             <Box>

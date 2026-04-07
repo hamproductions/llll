@@ -5,6 +5,7 @@ import { join, relative } from 'path';
 import { createReadStream } from 'fs';
 import { Storage } from '@google-cloud/storage';
 import dotenv from 'dotenv';
+import { uploadTargets } from './pipeline-manifest.js';
 
 dotenv.config();
 
@@ -77,12 +78,16 @@ function getContentType(filePath) {
     webp: 'image/webp',
     webm: 'video/webm',
     mp4: 'video/mp4',
+    wav: 'audio/wav',
+    mp3: 'audio/mpeg',
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
     png: 'image/png',
     gif: 'image/gif',
     svg: 'image/svg+xml',
-    json: 'application/json'
+    json: 'application/json',
+    glb: 'model/gltf-binary',
+    gltf: 'model/gltf+json'
   };
   return contentTypes[ext] || 'application/octet-stream';
 }
@@ -360,14 +365,7 @@ Examples:
     console.log(`Mode: ${syncDelete ? 'Full sync (upload + delete)' : 'Upload only'}`);
     console.log(`Concurrency: ${customConcurrency} parallel operations\n`);
 
-    const directories = [
-      { local: 'data/assets', gcs: 'assets' },
-      { local: 'data/cards', gcs: 'cards' },
-      { local: 'public/album-art', gcs: 'album-art' },
-      { local: 'data/story/voice', gcs: 'story/voice' }
-    ];
-
-    for (const { local, gcs } of directories) {
+    for (const { local, gcs } of uploadTargets) {
       try {
         const stats = await stat(local);
         if (stats.isDirectory()) {

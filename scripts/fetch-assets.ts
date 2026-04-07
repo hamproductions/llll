@@ -1,7 +1,28 @@
 import * as fs from 'node:fs/promises';
+import os from 'node:os';
 import * as path from 'node:path';
+import { Database } from 'bun:sqlite';
 import { readableStreamToArrayBuffer } from 'bun';
 import sharp from 'sharp';
+
+const HASU_PYTHON = process.env.HASU_PYTHON || 'python3.11';
+const PYTHON311_USER_SITE = path.join(os.homedir(), '.local', 'lib', 'python3.11', 'site-packages');
+const HASU_TOOLS_DIR = path.join(process.cwd(), '../hasu_tools');
+const HASU_TEXTURE_PYTHON = path.join(HASU_TOOLS_DIR, '.venv', 'bin', 'python');
+const bundleLabelCache = new Map<string, Set<string>>();
+
+function getBundleLabels(dbSqlitePath: string) {
+  const cached = bundleLabelCache.get(dbSqlitePath);
+  if (cached) return cached;
+
+  const db = new Database(dbSqlitePath, { readonly: true });
+  const rows = db.query('SELECT label FROM bundle').all() as Array<{ label: string }>;
+  db.close();
+
+  const labels = new Set(rows.map((row) => row.label));
+  bundleLabelCache.set(dbSqlitePath, labels);
+  return labels;
+}
 
 // Helper function to run shell commands
 export async function runCommand(
@@ -16,21 +37,31 @@ export async function runCommand(
     cwd: cwd || process.cwd(),
     stdout: 'pipe',
     stderr: 'pipe',
-    env: process.env as Record<string, string>
+    env: {
+      ...(process.env as Record<string, string>),
+      PYTHONPATH: [HASU_TOOLS_DIR, PYTHON311_USER_SITE, process.env.PYTHONPATH]
+        .filter(Boolean)
+        .join(path.delimiter)
+    }
   });
 
   const stdoutBuffer = await readableStreamToArrayBuffer(proc.stdout);
   const stderrBuffer = await readableStreamToArrayBuffer(proc.stderr);
+  const exitCode = await proc.exited;
   const stdout = new TextDecoder().decode(stdoutBuffer);
   const stderr = new TextDecoder().decode(stderrBuffer);
-
-  // const exitCode = proc.exitCode;
 
   if (stdout.trim()) {
     console.log(`${logPrefix || '[CMD]'} STDOUT:\n${stdout.trim()}`);
   }
   if (stderr.trim()) {
     console.error(`${logPrefix || '[CMD]'} STDERR:\n${stderr.trim()}`);
+  }
+
+  if (exitCode !== 0) {
+    throw new Error(
+      `${logPrefix || '[CMD]'} failed with exit code ${exitCode}: ${commandDisplay}`
+    );
   }
 
   return { stdout, stderr };
@@ -75,7 +106,7 @@ async function processVoiceAssets(
     await fs.copyFile(voiceAssetSourcePath, path.join(tmpVoiceProcessingDir, voiceAssetFilename));
 
     await runCommand(
-      'python3',
+      HASU_PYTHON,
       ['-m', 'silverwind.tool.acb', tmpVoiceProcessingDir],
       path.join(projectRoot, '../hasu_tools'),
       `[ACBDecrypt-${cardSeriesId}]`
@@ -126,6 +157,8 @@ export async function processGenericImageAssets(
   const baseNameWithoutExt = assetFilename.replace(/\.[^.]+$/, ''); // Remove extension
   const destFileName = `${baseNameWithoutExt}.webp`;
   const destFilePath = path.join(imagesDestDir, destFileName);
+  const useUnityPyFirst =
+    assetFilename.startsWith('image_sticker_') || assetFilename.startsWith('story_bg_image_');
 
   try {
     await fs.access(destFilePath);
@@ -145,21 +178,32 @@ export async function processGenericImageAssets(
     const processingImagePath = path.join(tmpImageProcessingDir, assetFilename);
     await fs.copyFile(imageAssetSourcePath, processingImagePath);
 
-    await runCommand(
-      'arch',
-      [
-        '-x86_64',
-        '/usr/bin/python3',
-        '-m',
-        'vendor.assetbundle_dist.assetbundle',
-        processingImagePath
-      ],
-      path.join(projectRoot, '../hasu_tools'),
-      `[ImageDecrypt-${logPrefix}]`
-    );
-
     const imageOutDir = path.join(tmpImageProcessingDir, 'out');
-    const outputFiles = await fs.readdir(imageOutDir);
+    let outputFiles: string[] = [];
+
+    if (!useUnityPyFirst) {
+      await runCommand(
+        HASU_PYTHON,
+        ['-m', 'vendor.assetbundle_dist.assetbundle', processingImagePath],
+        path.join(projectRoot, '../hasu_tools'),
+        `[ImageDecrypt-${logPrefix}]`
+      );
+      outputFiles = await fs.readdir(imageOutDir).catch(() => [] as string[]);
+    }
+
+    if (
+      useUnityPyFirst ||
+      !outputFiles.some((file) => file.endsWith('.png') || file.endsWith('.jpg'))
+    ) {
+      await runCommand(
+        HASU_TEXTURE_PYTHON,
+        [path.join(projectRoot, '../scripts/extract_texture.py'), processingImagePath, imageOutDir],
+        projectRoot,
+        `[ImageFallback-${logPrefix}]`
+      );
+      outputFiles = await fs.readdir(imageOutDir).catch(() => [] as string[]);
+    }
+
     for (const file of outputFiles) {
       if (file.endsWith('.png') || file.endsWith('.jpg')) {
         const sourceFilePath = path.join(imageOutDir, file);
@@ -366,13 +410,14 @@ export async function fetchAssets(
   const cardDataDestRoot = path.join(dataRoot, 'cards', String(cardSeriesId));
 
   if (aggressiveSkip) {
+    const imagesDir = path.join(cardDataDestRoot, 'images');
     try {
-      await fs.access(cardDataDestRoot);
-      console.log(`Skipping card ${cardSeriesId} (directory already exists)`);
-      return;
-    } catch {
-      // Directory doesn't exist, continue processing
-    }
+      const imageFiles = await fs.readdir(imagesDir);
+      if (imageFiles.some((f) => f.endsWith('.webp'))) {
+        console.log(`Skipping card ${cardSeriesId} (images already exist)`);
+        return;
+      }
+    } catch {}
   }
 
   const voiceDestDir = path.join(cardDataDestRoot, 'voice');
@@ -383,6 +428,7 @@ export async function fetchAssets(
 
   const assetsToFetch: string[] = [];
   const dbSqlitePath = path.join(projectRoot, '../', 'data', 'db.sqlite3');
+  const bundleLabels = getBundleLabels(dbSqlitePath);
 
   let voiceAssetFilename: string | undefined;
   let deckFrameCharaImageFilename: string | undefined;
@@ -392,7 +438,9 @@ export async function fetchAssets(
     voiceAssetFilename = `vo_card_${cardSeriesId}.acb`;
     const voiceOutputPrefix = `vo_card_${cardSeriesId}`; // Output files start with this
     await fs.mkdir(voiceDestDir, { recursive: true });
-    if (!(await destinationContainsFileStartingWith(voiceDestDir, voiceOutputPrefix))) {
+    if (!bundleLabels.has(voiceAssetFilename)) {
+      console.log(`Skipping voice asset ${voiceAssetFilename} because no matching bundle label exists.`);
+    } else if (!(await destinationContainsFileStartingWith(voiceDestDir, voiceOutputPrefix))) {
       assetsToFetch.push(voiceAssetFilename);
       console.log(`Identified voice asset for fetching: ${voiceAssetFilename}`);
     } else {
@@ -401,12 +449,14 @@ export async function fetchAssets(
       );
     }
 
-    const imageVariants = ['0', '1']; // Assuming '2' is also a valid variant for specialappeal
+    const imageVariants = ['0', '1', '2'];
     await fs.mkdir(imagesDestDir, { recursive: true });
     for (const variant of imageVariants) {
       const imageAssetFilename = `image_card_full_${cardSeriesId}${variant}`;
       const imageOutputPrefix = `image_card_full_${cardSeriesId}${variant}`; // Output files start with this
-      if (!(await destinationContainsFileStartingWith(imagesDestDir, imageOutputPrefix))) {
+      if (!bundleLabels.has(imageAssetFilename)) {
+        console.log(`Skipping image asset ${imageAssetFilename} because no matching bundle label exists.`);
+      } else if (!(await destinationContainsFileStartingWith(imagesDestDir, imageOutputPrefix))) {
         assetsToFetch.push(imageAssetFilename);
         console.log(`Identified image asset for fetching: ${imageAssetFilename}`);
       } else {
@@ -417,7 +467,11 @@ export async function fetchAssets(
 
       const specialAppealImageFilename = `image_card_specialappeal_${cardSeriesId}${variant}`;
       const specialAppealOutputPrefix = `image_card_specialappeal_${cardSeriesId}${variant}`;
-      if (!(await destinationContainsFileStartingWith(imagesDestDir, specialAppealOutputPrefix))) {
+      if (!bundleLabels.has(specialAppealImageFilename)) {
+        console.log(
+          `Skipping special appeal image ${specialAppealImageFilename} because no matching bundle label exists.`
+        );
+      } else if (!(await destinationContainsFileStartingWith(imagesDestDir, specialAppealOutputPrefix))) {
         assetsToFetch.push(specialAppealImageFilename);
         console.log(
           `Identified special appeal image asset for fetching: ${specialAppealImageFilename}`
@@ -430,7 +484,11 @@ export async function fetchAssets(
     }
     deckFrameCharaImageFilename = `image_deck_frame_chara_${cardSeriesId}`;
     const deckFrameCharaOutputPrefix = `image_deck_frame_chara_${cardSeriesId}`;
-    if (!(await destinationContainsFileStartingWith(imagesDestDir, deckFrameCharaOutputPrefix))) {
+    if (!bundleLabels.has(deckFrameCharaImageFilename)) {
+      console.log(
+        `Skipping deck frame chara image ${deckFrameCharaImageFilename} because no matching bundle label exists.`
+      );
+    } else if (!(await destinationContainsFileStartingWith(imagesDestDir, deckFrameCharaOutputPrefix))) {
       assetsToFetch.push(deckFrameCharaImageFilename);
       console.log(
         `Identified deck frame chara image asset for fetching: ${deckFrameCharaImageFilename}`
@@ -453,7 +511,9 @@ export async function fetchAssets(
     await fs.mkdir(videosDestDir, { recursive: true });
     for (const videoFilename of videoPatterns) {
       const videoOutputPrefix = path.basename(videoFilename, '.usm');
-      if (!(await destinationContainsFileStartingWith(videosDestDir, videoOutputPrefix))) {
+      if (!bundleLabels.has(videoFilename)) {
+        console.log(`Skipping video asset ${videoFilename} because no matching bundle label exists.`);
+      } else if (!(await destinationContainsFileStartingWith(videosDestDir, videoOutputPrefix))) {
         assetsToFetch.push(videoFilename);
         console.log(`Identified video asset for fetching: ${videoFilename}`);
       } else {
@@ -465,7 +525,7 @@ export async function fetchAssets(
     if (uniqueAssetsToFetch.length > 0) {
       console.log(`Fetching ${uniqueAssetsToFetch.length} unique assets to ${fetchedAssetsDir}...`);
       await runCommand(
-        'python3',
+        HASU_PYTHON,
         [
           '-m',
           'silverwind.tool.get_assets',
@@ -479,6 +539,12 @@ export async function fetchAssets(
         `[GetAssets-${cardSeriesId}]`
       );
       console.log(`All assets fetched to: ${fetchedAssetsDir}`);
+
+      const fetchedFiles = await fs.readdir(fetchedAssetsDir).catch(() => [] as string[]);
+      if (fetchedFiles.length === 0) {
+        console.log(`No fetchable assets for card ${cardSeriesId}`);
+        return;
+      }
 
       const processingPromises: Promise<void>[] = [];
 

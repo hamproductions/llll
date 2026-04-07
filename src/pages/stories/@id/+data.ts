@@ -43,7 +43,8 @@ async function data(pageContext: PageContext) {
   return {
     series,
     chapters: series ? chapters : [],
-    seriesId
+    seriesId,
+    leadScriptId: chapters[0]?.scriptId ?? null
   };
 }
 

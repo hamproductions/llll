@@ -4,15 +4,15 @@ import { useData } from 'vike-react/useData';
 import type { PageData } from './+data';
 import { Text } from '~/components/ui/text';
 import { Metadata } from '~/components/layout/Metadata';
-import { Box, Stack, HStack } from 'styled-system/jsx';
+import { Box, Stack, HStack, styled } from 'styled-system/jsx';
 import { Link } from '~/components/ui/link';
 import { Button } from '~/components/ui/button';
 import { storyToMarkdown } from '~/utils/storyMarkdown';
 import { DialogueBlock } from '~/components/story/DialogueBlock';
 import { NarrationBlock } from '~/components/story/NarrationBlock';
-import { BGMIndicator } from '~/components/story/BGMIndicator';
 import { SceneSeparator } from '~/components/story/SceneSeparator';
 import { VoicePlaybackProvider, useVoicePlayback } from '~/components/story/VoicePlaybackContext';
+import { getStoryPartImageUrl, getStoryThumbnailUrl, getStoryBackgroundUrl } from '~/utils/assets';
 
 function StoryContent() {
   const { t } = useTranslation();
@@ -78,19 +78,52 @@ function StoryContent() {
               </Button>
             </HStack>
           </HStack>
-          <Stack gap="1" alignItems="center">
-            <Text fontSize="sm" color="fg.muted">
-              {series.name}
-            </Text>
-            <Text textAlign="center" fontSize="3xl" fontWeight="bold">
-              {chapter.name}
-            </Text>
-            {chapter.subTitleName && (
-              <Text fontSize="lg" color="fg.muted">
-                {chapter.subTitleName}
-              </Text>
-            )}
-          </Stack>
+          <Box position="relative" borderRadius="2xl" overflow="hidden" minH={{ base: '280px', md: '360px' }}>
+            {chapter.scriptId ? (
+              <styled.img
+                src={getStoryPartImageUrl(chapter.scriptId)}
+                alt={chapter.name ?? `Chapter ${chapter.id}`}
+                w="full"
+                h="full"
+                minH={{ base: '280px', md: '360px' }}
+                objectFit="cover"
+              />
+            ) : null}
+            <Box
+              position="absolute"
+              inset="0"
+              background="linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.84))"
+            />
+            <Box position="absolute" inset="0" p={{ base: '5', md: '8' }} display="flex" alignItems="flex-end">
+              <HStack gap="4" alignItems="flex-end" w="full" flexWrap="wrap">
+                {chapter.scriptId ? (
+                  <styled.img
+                    src={getStoryThumbnailUrl(chapter.scriptId)}
+                    alt={chapter.name ?? `Chapter ${chapter.id}`}
+                    w={{ base: '104px', md: '128px' }}
+                    h={{ base: '104px', md: '128px' }}
+                    objectFit="cover"
+                    borderRadius="xl"
+                    borderWidth="1px"
+                    borderColor="rgba(255,255,255,0.18)"
+                  />
+                ) : null}
+                <Stack gap="2" flex="1" minW="240px">
+                  <Text fontSize="sm" color="rgba(255,255,255,0.8)">
+                    {series.name}
+                  </Text>
+                  <Text color="white" textAlign="left" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="black">
+                    {chapter.name}
+                  </Text>
+                  {chapter.subTitleName && (
+                    <Text fontSize="lg" color="rgba(255,255,255,0.84)">
+                      {chapter.subTitleName}
+                    </Text>
+                  )}
+                </Stack>
+              </HStack>
+            </Box>
+          </Box>
         </Stack>
 
         {/* Story Content */}
@@ -103,17 +136,19 @@ function StoryContent() {
                     return <DialogueBlock key={index} line={line} index={index} />;
                   case 'narration':
                     return <NarrationBlock key={index} line={line} />;
-                  case 'bgm':
-                    if (line.bgmId && line.action) {
-                      return (
-                        <BGMIndicator
-                          key={index}
-                          bgmId={line.bgmId}
-                          action={line.action}
-                          autoplay={true}
+                  case 'bg':
+                    return (
+                      <Box key={index} w="full" maxW="4xl" mx="auto" my="4" px={{ base: '4', md: '0' }}>
+                        <styled.img
+                          src={getStoryBackgroundUrl(line.content)}
+                          alt=""
+                          w="full"
+                          display="block"
+                          borderRadius="xl"
                         />
-                      );
-                    }
+                      </Box>
+                    );
+                  case 'bgm':
                     return null;
                   case 'separator':
                     return <SceneSeparator key={index} />;

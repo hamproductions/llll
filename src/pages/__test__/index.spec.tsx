@@ -7,6 +7,8 @@ import { Page } from '../index/+Page';
 describe('Home Page', () => {
   it('Renders', async () => {
     const [{ findByText }] = await render(<Page />);
-    expect(await findByText('LoveLive! Sorter')).toBeInTheDocument();
+    expect(await findByText('Link! Like! LoveLive! Explorer')).toBeInTheDocument();
+    expect(await findByText('Explore Songs')).toBeInTheDocument();
+    expect(await findByText('Explore Characters')).toBeInTheDocument();
   });
 });

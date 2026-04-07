@@ -7,6 +7,7 @@ import { sql, eq } from 'drizzle-orm';
 import { Database } from 'bun:sqlite'; // Assuming bun:sqlite is available
 import { cardDatas, cardRarities, characters } from '~/../drizzle/schema';
 import { filterReleasedContent } from '~/utils/release';
+import { getCharacterDisplayName } from '~/utils/game';
 
 async function data() {
   const sqlite = new Database(join(import.meta.dirname, '../../../../data/db.sqlite3'));
@@ -102,8 +103,20 @@ async function data() {
       })
       .from(characters);
 
+    const characterMap = new Map(
+      charactersData.map((character) => [
+        character.id,
+        getCharacterDisplayName(character) || String(character.id)
+      ])
+    );
+
     return {
-      cards: filterReleasedContent(cards, undefined, (card) => card.releaseDate as string | null),
+      cards: filterReleasedContent(cards, undefined, (card) => card.releaseDate as string | null).map(
+        (card) => ({
+          ...card,
+          characterName: card.charactersId ? characterMap.get(card.charactersId) ?? String(card.charactersId) : ''
+        })
+      ),
       rarities,
       characters: charactersData
     };

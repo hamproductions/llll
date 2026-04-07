@@ -1,151 +1,357 @@
-import { useState, useCallback, useRef, Suspense } from 'react';
-import { Stack, HStack, Box, Grid } from 'styled-system/jsx';
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Box, HStack, Stack } from 'styled-system/jsx';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { Viewport } from './Viewport';
-import { CharacterModel, type CharacterModelHandle, type TextureMap } from './CharacterModel';
-import type { ExpressionData } from './ExpressionController';
+import { CharacterModel, type CharacterModelHandle } from './CharacterModel';
+import type { Asset3D } from '~/pages/model-viewer/+data';
+import { get3dAssetUrl } from '~/utils/assets';
+
+class ModelErrorBoundary extends Component<{ children: ReactNode; resetKey?: string }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidUpdate(prevProps: { resetKey?: string }) {
+    if (prevProps.resetKey !== this.props.resetKey) this.setState({ hasError: false });
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
 
 type BgMode = 'dark' | 'light' | 'transparent';
 
-const TEX = '/3d/aoi/textures';
+const EXPRESSION_PRESETS = [
+  { label: 'Neutral', shapes: [] },
+  { label: 'Smile', shapes: [['smile'], ['happy']] },
+  { label: 'Angry', shapes: [['angry'], ['brow_down']] },
+  { label: 'Sad', shapes: [['sad'], ['troubled']] },
+  { label: 'Surprised', shapes: [['surprised'], ['wide']] }
+];
 
-const AOI_TEXTURES: TextureMap = {
-  Skin: { mainTex: `${TEX}/SCSch024AoiDeA_Skin_col0.png`, shadowTex: `${TEX}/SCSch024AoiDeA_Skin_col1.png` },
-  Cos: { mainTex: `${TEX}/SCSch024AoiDeA_Cos_col0.png`, shadowTex: `${TEX}/SCSch024AoiDeA_Cos_col1.png` },
-  Hair_Wolf: { mainTex: `${TEX}/SCSch024AoiDeA_Hair_col0.png`, shadowTex: `${TEX}/SCSch024AoiDeA_Hair_col1.png` },
-  Skirt: { mainTex: `${TEX}/SCSch024AoiDeA_Cos_col0.png`, shadowTex: `${TEX}/SCSch024AoiDeA_Cos_col1.png` },
-  IndoorShoes: { mainTex: `${TEX}/SCSch024AoiDeA_IndoorShoes_col0.png`, shadowTex: `${TEX}/SCSch024AoiDeA_IndoorShoes_col1.png` },
-  Loafer: { mainTex: `${TEX}/SCSch024AoiDeA_IndoorShoes_col0.png`, shadowTex: `${TEX}/SCSch024AoiDeA_IndoorShoes_col1.png` },
-  Face: { mainTex: `${TEX}/SCSch024Aoi_Face_col0.png`, shadowTex: `${TEX}/SCSch024Aoi_Face_col1.png` },
-  Brow: { mainTex: `${TEX}/SCSch024Aoi_Face_col0.png`, shadowTex: `${TEX}/SCSch024Aoi_Face_col1.png` },
-  Eye: { mainTex: `${TEX}/SCSch024Aoi_Eye_col0.png` },
-  EyeLens: { mainTex: `${TEX}/SCSch024Aoi_Eye_lens.png` },
-  EyeShadow: { mainTex: `${TEX}/SCSch024Aoi_Face_col0.png` },
+const MOUTH_PRESETS = [
+  { label: 'A', shapes: [['mouth_a'], ['a']] },
+  { label: 'I', shapes: [['mouth_i'], ['i']] },
+  { label: 'U', shapes: [['mouth_u'], ['u']] },
+  { label: 'E', shapes: [['mouth_e'], ['e']] },
+  { label: 'O', shapes: [['mouth_o'], ['o']] }
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  all: 'All',
+  costume: 'Costume',
+  stage: 'Stage',
+  prop: 'Prop',
+  item: 'Item',
+  unknown: 'Other'
 };
 
-const CHARACTERS: Record<string, { name: string; glbUrl: string }> = {
-  aoi: { name: 'Aoi', glbUrl: '/3d/aoi/aoi_full.glb' },
-};
+interface ViewerUIProps {
+  assets: Asset3D[];
+  categories: string[];
+}
 
-const EXPRESSIONS = [
-  'normal', 'smile', 'angry', 'sad', 'surprise',
-  'happy', 'bitter-smile', 'cool', 'wink-smile',
-  'laugh', 'doubt', 'sulk', 'stunned', 'entranced',
-] as const;
+const normalizeShape = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-const MOUTH_SHAPES = ['A', 'I', 'U', 'E', 'O'] as const;
+function getDisplayName(asset: Asset3D): string {
+  const meta = asset.metadata;
+  if (asset.category === 'costume') {
+    const charName = meta.characterName || meta.characterNameJp || '';
+    const costumeName = meta.costumeName || '';
+    if (charName && costumeName) return `${charName} - ${costumeName}`;
+    if (charName) return `${charName}`;
+  }
+  if (meta.assetName && typeof meta.assetName === 'string') {
+    return meta.assetName;
+  }
+  return asset.label.replace(/^3d_(costume|stage|prop|item)_/, '').replace(/[_-]+/g, ' ');
+}
 
-export function ViewerUI() {
-  const [characterId, setCharacterId] = useState<string>('aoi');
-  const [bgMode, setBgMode] = useState<BgMode>('dark');
-  const [showGrid, setShowGrid] = useState(true);
-  const [expression, setExpression] = useState<ExpressionData | null>(null);
-  const [activeExpr, setActiveExpr] = useState<string>('');
-  const modelRef = useRef<CharacterModelHandle>(null);
+function resolveModelUrl(asset: Asset3D): string {
+  if (asset.category === 'unknown') {
+    return `/3d/${asset.glbPath}`;
+  }
+  return get3dAssetUrl(asset.glbPath);
+}
 
-  const character = CHARACTERS[characterId];
+function EnvironmentRoom() {
+  const envAssetUrl = get3dAssetUrl('stage/3d_stage_03/3d_stage_03.glb');
+  const envTextureDir = get3dAssetUrl('stage/3d_stage_03/');
+  const [envTexMap, setEnvTexMap] = useState<Record<string, Record<string, string>> | null>(null);
 
-  const handleMouthShape = useCallback((shape: string) => {
-    const ctrl = modelRef.current?.expressionController;
-    if (!ctrl) return;
-    for (const s of MOUTH_SHAPES) {
-      ctrl.setBlendShape(`Face_.Mouth_${s}`, s === shape ? 100.0 : 0.0);
-    }
+  useEffect(() => {
+    const texJsonUrl = get3dAssetUrl('stage/3d_stage_03/textures.json');
+    fetch(texJsonUrl)
+      .then((r) => r.json())
+      .then(setEnvTexMap)
+      .catch(() => setEnvTexMap({}));
   }, []);
 
-  const handleExpression = useCallback(async (name: string) => {
-    setActiveExpr(name);
-    try {
-      const resp = await fetch(`/3d/aoi/expressions/aoi_face_${name}.json`);
-      if (resp.ok) {
-        const data = await resp.json();
-        setExpression(data);
-      }
-    } catch {
-      setExpression(null);
-    }
-  }, []);
+  if (!envTexMap) return null;
 
   return (
-    <HStack w="full" h="calc(100vh - 64px)" gap="0" alignItems="stretch">
-      <Box flex="1" position="relative" minH="400px">
-        <Viewport bgMode={bgMode} showGrid={showGrid}>
+    <CharacterModel
+      url={envAssetUrl}
+      textureDir={envTextureDir}
+      textureMap={envTexMap}
+      noAutoScale
+    />
+  );
+}
+
+export function ViewerUI({ assets, categories }: ViewerUIProps) {
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAssetId, setSelectedAssetId] = useState(assets[0]?.id ?? '');
+  const [bgMode, setBgMode] = useState<BgMode>('dark');
+  const [showGrid, setShowGrid] = useState(true);
+  const [activeExpression, setActiveExpression] = useState('Neutral');
+  const [activeMouth, setActiveMouth] = useState('');
+  const modelRef = useRef<CharacterModelHandle>(null);
+
+  const filteredAssets = useMemo(() => {
+    let filtered = assets;
+    if (activeCategory !== 'all') {
+      filtered = filtered.filter((a) => a.category === activeCategory);
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (a) =>
+          a.label.toLowerCase().includes(q) ||
+          getDisplayName(a).toLowerCase().includes(q) ||
+          (a.metadata.characterName && String(a.metadata.characterName).toLowerCase().includes(q)) ||
+          (a.metadata.costumeName && String(a.metadata.costumeName).toLowerCase().includes(q)) ||
+          (a.metadata.stageName && String(a.metadata.stageName).toLowerCase().includes(q))
+      );
+    }
+    return filtered;
+  }, [assets, activeCategory, searchQuery]);
+
+  const selectedAsset = useMemo(
+    () => assets.find((a) => a.id === selectedAssetId) ?? filteredAssets[0] ?? null,
+    [assets, filteredAssets, selectedAssetId]
+  );
+
+  const modelUrl = selectedAsset ? resolveModelUrl(selectedAsset) : null;
+
+  const textureDir = selectedAsset
+    ? selectedAsset.category === 'unknown'
+      ? `/3d/${selectedAsset.textureDir}`
+      : get3dAssetUrl(selectedAsset.textureDir)
+    : undefined;
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: assets.length };
+    for (const a of assets) {
+      counts[a.category] = (counts[a.category] || 0) + 1;
+    }
+    return counts;
+  }, [assets]);
+
+  const applyPreset = (groups: string[][]) => {
+    const controller = modelRef.current?.expressionController;
+    if (!controller) return;
+    const names = controller.getBlendShapeNames();
+    controller.reset();
+    for (const group of groups) {
+      const target = names.find((name) => {
+        const normalizedName = normalizeShape(name);
+        return group.some((part) => normalizedName.includes(normalizeShape(part)));
+      });
+      if (target) controller.setBlendShape(target, 100);
+    }
+  };
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => applyPreset([]), 100);
+    return () => window.clearTimeout(timeout);
+  }, [selectedAssetId]);
+
+  const hasBlendShapes = selectedAsset?.category === 'costume' || selectedAsset?.category === 'unknown';
+  const cameraMode = (() => {
+    if (selectedAsset?.category === 'stage') return 'fps' as const;
+    if (selectedAsset?.category === 'prop' || selectedAsset?.category === 'item') return 'turntable' as const;
+    return 'orbit' as const;
+  })();
+
+  return (
+    <HStack w="full" h="calc(100vh - 64px)" gap="0" alignItems="stretch" flexDirection={{ base: 'column', lg: 'row' }}>
+      <Box flex="1" position="relative" minH={{ base: '60vh', lg: '400px' }}>
+        <Viewport bgMode={bgMode} showGrid={showGrid} cameraMode={cameraMode} resetKey={selectedAssetId}>
           <Suspense fallback={null}>
-            {character && (
-              <CharacterModel
-                ref={modelRef}
-                url={character.glbUrl}
-                textures={AOI_TEXTURES}
-                expression={expression}
-              />
+            {selectedAsset?.category !== 'stage' && (
+              <ModelErrorBoundary resetKey="env">
+                <EnvironmentRoom />
+              </ModelErrorBoundary>
             )}
+            <ModelErrorBoundary resetKey={selectedAssetId}>
+              {modelUrl ? (
+                <CharacterModel
+                  ref={modelRef}
+                  url={modelUrl}
+                  textureDir={textureDir}
+                  textureFiles={selectedAsset?.textures}
+                  textureMap={selectedAsset?.textureMap}
+                  noAutoScale={selectedAsset?.category === 'stage'}
+                />
+              ) : null}
+            </ModelErrorBoundary>
           </Suspense>
         </Viewport>
       </Box>
+
       <Stack
-        w="300px"
+        w={{ base: 'full', lg: '360px' }}
         p="4"
-        gap="4"
-        borderLeftWidth="1px"
+        gap="3"
+        borderLeftWidth={{ base: '0', lg: '1px' }}
+        borderTopWidth={{ base: '1px', lg: '0' }}
         borderColor="border.default"
         overflowY="auto"
         bg="bg.default"
       >
-        <Stack gap="2">
-          <Text fontWeight="semibold" fontSize="sm">Character</Text>
-          <HStack gap="2" flexWrap="wrap">
-            {Object.entries(CHARACTERS).map(([id, c]) => (
-              <Button key={id} size="sm" variant={characterId === id ? 'solid' : 'outline'} onClick={() => setCharacterId(id)}>
-                {c.name}
-              </Button>
-            ))}
-          </HStack>
-        </Stack>
+        <Text fontWeight="bold" fontSize="lg">
+          {selectedAsset ? getDisplayName(selectedAsset) : 'No model'}
+        </Text>
 
-        <Stack gap="2">
-          <Text fontWeight="semibold" fontSize="sm">Expression</Text>
-          <Grid columns={3} gap="1">
-            {EXPRESSIONS.map((expr) => (
-              <Button key={expr} size="xs" variant={activeExpr === expr ? 'solid' : 'outline'} onClick={() => handleExpression(expr)}>
-                {expr}
-              </Button>
-            ))}
-          </Grid>
-        </Stack>
-
-        <Stack gap="2">
-          <Text fontWeight="semibold" fontSize="sm">Mouth</Text>
-          <HStack gap="1" flexWrap="wrap">
-            {MOUTH_SHAPES.map((shape) => (
-              <Button key={shape} size="xs" variant="outline" onClick={() => handleMouthShape(shape)}>
-                {shape}
-              </Button>
-            ))}
-            <Button size="xs" variant="ghost" onClick={() => {
-              const ctrl = modelRef.current?.expressionController;
-              if (!ctrl) return;
-              for (const s of MOUTH_SHAPES) ctrl.setBlendShape(`Face_.Mouth_${s}`, 0);
-            }}>
-              Reset
+        {/* Category tabs */}
+        <HStack gap="1" flexWrap="wrap">
+          {['all', ...categories].map((cat) => (
+            <Button
+              key={cat}
+              size="xs"
+              variant={activeCategory === cat ? 'solid' : 'ghost'}
+              onClick={() => setActiveCategory(cat)}
+            >
+              {CATEGORY_LABELS[cat] || cat} ({categoryCounts[cat] || 0})
             </Button>
-          </HStack>
+          ))}
+        </HStack>
+
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search models..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: '6px 10px',
+            fontSize: '13px',
+            borderRadius: '6px',
+            border: '1px solid var(--colors-border-default)',
+            background: 'var(--colors-bg-subtle)',
+            color: 'var(--colors-fg-default)',
+            outline: 'none',
+            width: '100%'
+          }}
+        />
+
+        {/* Model list */}
+        <Stack gap="1" maxH="300px" overflowY="auto">
+          {filteredAssets.length === 0 && (
+            <Text fontSize="sm" color="fg.muted">No models found</Text>
+          )}
+          {filteredAssets.map((asset) => (
+            <Button
+              key={asset.id}
+              size="xs"
+              variant={selectedAsset?.id === asset.id ? 'solid' : 'ghost'}
+              justifyContent="flex-start"
+              textAlign="left"
+              overflow="hidden"
+              whiteSpace="nowrap"
+              onClick={() => {
+                setSelectedAssetId(asset.id);
+                setActiveExpression('Neutral');
+                setActiveMouth('');
+              }}
+            >
+              <Text fontSize="xs" truncate>{getDisplayName(asset)}</Text>
+            </Button>
+          ))}
         </Stack>
+
+        {/* Expression controls (only for character models) */}
+        {hasBlendShapes && (
+          <>
+            <Stack gap="2">
+              <Text fontWeight="semibold" fontSize="sm">Expression</Text>
+              <HStack gap="2" flexWrap="wrap">
+                {EXPRESSION_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    size="xs"
+                    variant={activeExpression === preset.label ? 'solid' : 'outline'}
+                    onClick={() => {
+                      setActiveExpression(preset.label);
+                      setActiveMouth('');
+                      applyPreset(preset.shapes);
+                    }}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </HStack>
+            </Stack>
+
+            <Stack gap="2">
+              <Text fontWeight="semibold" fontSize="sm">Mouth</Text>
+              <HStack gap="2" flexWrap="wrap">
+                {MOUTH_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    size="xs"
+                    variant={activeMouth === preset.label ? 'solid' : 'outline'}
+                    onClick={() => {
+                      setActiveExpression('Neutral');
+                      setActiveMouth(preset.label);
+                      applyPreset(preset.shapes);
+                    }}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+                <Button
+                  size="xs"
+                  variant={!activeMouth && activeExpression === 'Neutral' ? 'solid' : 'outline'}
+                  onClick={() => {
+                    setActiveExpression('Neutral');
+                    setActiveMouth('');
+                    applyPreset([]);
+                  }}
+                >
+                  Reset
+                </Button>
+              </HStack>
+            </Stack>
+          </>
+        )}
+
+        {cameraMode === 'fps' && (
+          <Text fontSize="xs" color="fg.muted">
+            Click to look around. WASD to move. Space/Q for up/down. Shift to sprint.
+          </Text>
+        )}
 
         <Stack gap="2">
           <Text fontWeight="semibold" fontSize="sm">Background</Text>
           <HStack gap="2" flexWrap="wrap">
             {(['dark', 'light', 'transparent'] as BgMode[]).map((mode) => (
-              <Button key={mode} size="xs" variant={bgMode === mode ? 'solid' : 'outline'} onClick={() => setBgMode(mode)}>
+              <Button
+                key={mode}
+                size="xs"
+                variant={bgMode === mode ? 'solid' : 'outline'}
+                onClick={() => setBgMode(mode)}
+              >
                 {mode}
               </Button>
             ))}
+            <Button size="xs" variant={showGrid ? 'solid' : 'outline'} onClick={() => setShowGrid(!showGrid)}>
+              Grid
+            </Button>
           </HStack>
         </Stack>
-
-        <Button size="xs" variant={showGrid ? 'solid' : 'outline'} onClick={() => setShowGrid(!showGrid)} w="fit-content">
-          Grid
-        </Button>
       </Stack>
     </HStack>
   );

@@ -1,16 +1,27 @@
 import { useTranslation } from 'react-i18next';
 import { useData } from 'vike-react/useData';
-import type { PageData } from './+data';
-import { Text } from '~/components/ui/text';
+import { Box, HStack, Stack, styled } from 'styled-system/jsx';
 import { Metadata } from '~/components/layout/Metadata';
-import { Box, Stack } from 'styled-system/jsx';
-import { Link } from '~/components/ui/link';
-import { Table } from '~/components/ui/table';
+import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
+import { Card } from '~/components/ui/card';
+import { Link } from '~/components/ui/link';
+import { Text } from '~/components/ui/text';
+import { getStoryMonthlyImageUrl, getStoryPartImageUrl, getStoryThumbnailUrl } from '~/utils/assets';
+
+import type { PageData } from './+data';
+
+const formatPartTitle = (value: string | null, index: number, fallback: string) => {
+  if (!value) {
+    return `${fallback} ${index + 1}`;
+  }
+
+  return /^\d+$/.test(value) ? `${fallback} ${value}` : value;
+};
 
 export function Page() {
   const { t } = useTranslation();
-  const { series, chapters, seriesId }: PageData = useData();
+  const { series, chapters, seriesId, leadScriptId }: PageData = useData();
 
   if (!series) {
     return (
@@ -30,69 +41,132 @@ export function Page() {
     <>
       <Metadata />
       <Stack gap="6" alignItems="center" w="full" py="8" _print={{ display: 'none' }}>
-        <Stack gap="2" alignItems="center" w="full" maxW="5xl" px={{ base: '4', md: '0' }}>
+        <Stack gap="4" w="full" maxW="6xl" px={{ base: '4', md: '0' }}>
           <Link href="/stories">
             <Button variant="ghost" size="sm">
               ← {t('back_to_stories', 'Back to Stories')}
             </Button>
           </Link>
-          <Text textAlign="center" fontSize="4xl" fontWeight="bold">
-            {series.name}
-          </Text>
-          {series.description && (
-            <Text textAlign="center" fontSize="lg" color="fg.muted">
-              {series.description}
-            </Text>
-          )}
+
+          <Card.Root overflow="hidden" borderRadius="2xl">
+            <Box position="relative" h={{ base: '280px', md: '360px' }}>
+              {leadScriptId ? (
+                <styled.img
+                  src={getStoryMonthlyImageUrl(series.id)}
+                  alt={series.name ?? `Story ${series.id}`}
+                  position="absolute"
+                  inset="0"
+                  w="full"
+                  h="full"
+                  objectFit="cover"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    const fallback = getStoryPartImageUrl(leadScriptId);
+                    if (img.src !== fallback) {
+                      img.src = fallback;
+                    }
+                  }}
+                />
+              ) : null}
+              <Box
+                position="absolute"
+                inset="0"
+                background="linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.84))"
+              />
+              <Box position="absolute" inset="0" p={{ base: '5', md: '8' }} display="flex" alignItems="flex-end">
+                <HStack gap="5" alignItems="flex-end" flexWrap="wrap" w="full">
+                  {leadScriptId ? (
+                    <Box
+                      flexShrink={0}
+                      borderRadius="xl"
+                      overflow="hidden"
+                      borderWidth="1px"
+                      borderColor="rgba(255,255,255,0.18)"
+                    >
+                      <styled.img
+                        src={getStoryThumbnailUrl(leadScriptId)}
+                        alt={series.name ?? `Story ${series.id}`}
+                        w={{ base: '112px', md: '144px' }}
+                        h={{ base: '112px', md: '144px' }}
+                        objectFit="cover"
+                      />
+                    </Box>
+                  ) : null}
+
+                  <Stack gap="3" flex="1" minW="240px">
+                    <HStack gap="2" flexWrap="wrap">
+                      <Badge>{chapters.length} {t('parts', 'Parts')}</Badge>
+                    </HStack>
+                    <Stack gap="2">
+                      <Text color="white" fontSize={{ base: '3xl', md: '5xl' }} fontWeight="black">
+                        {series.name}
+                      </Text>
+                      {series.description ? (
+                        <Text color="rgba(255,255,255,0.84)" maxW="4xl">
+                          {series.description}
+                        </Text>
+                      ) : null}
+                    </Stack>
+                  </Stack>
+                </HStack>
+              </Box>
+            </Box>
+          </Card.Root>
         </Stack>
 
-        <Box w="full" maxW="5xl" px={{ base: '4', md: '0' }}>
-          <Text fontSize="sm" color="fg.muted" textAlign="right">
-            {t('chapter_count', '{{count}} chapters', { count: chapters.length })}
-          </Text>
-        </Box>
+        <Stack gap="3" w="full" maxW="6xl" px={{ base: '4', md: '0' }}>
+          {chapters.map((chapter, index) => {
+            const partLabel = formatPartTitle(chapter.subTitleName, index, t('part', 'Part'));
+            const hasUniqueDescription = chapter.description && !/^PART\s+\d+$/i.test(chapter.description);
 
-        {chapters && chapters.length > 0 ? (
-          <Box
-            borderRadius="lg"
-            borderWidth="1px"
-            w="full"
-            maxW="5xl"
-            mx="auto"
-            p="0"
-            overflowX="auto"
-          >
-            <Table.Root variant="outline" size="md" w="full">
-              <Table.Head>
-                <Table.Row>
-                  <Table.Header>{t('table_header_chapter_name', 'Chapter Name')}</Table.Header>
-                  <Table.Header>{t('table_header_part', 'Part')}</Table.Header>
-                </Table.Row>
-              </Table.Head>
-              <Table.Body>
-                {chapters.map((chapter) => (
-                  <Table.Row key={chapter.id} _hover={{ bg: 'bg.subtle' }}>
-                    <Table.Cell>
-                      <Link
-                        href={`/stories/${seriesId}/${chapter.id}`}
-                        _hover={{ textDecoration: 'underline' }}
-                      >
-                        {chapter.name}
-                      </Link>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Text fontSize="sm" color="fg.muted">
-                        {chapter.subTitleName}
+            return (
+              <Link
+                key={chapter.id}
+                href={`/stories/${seriesId}/${chapter.id}`}
+                display="block"
+                textDecoration="none"
+                borderRadius="xl"
+                overflow="hidden"
+                transition="all 0.2s"
+                _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }}
+              >
+                <HStack
+                  alignItems="stretch"
+                  gap="0"
+                  flexDirection={{ base: 'row', md: 'row' }}
+                  bg="bg.default"
+                  borderWidth="1px"
+                  borderRadius="xl"
+                  overflow="hidden"
+                >
+                  <Box position="relative" w={{ base: '120px', md: '200px' }} minH={{ base: '90px', md: '120px' }} flexShrink={0}>
+                    {chapter.scriptId ? (
+                      <styled.img
+                        src={getStoryThumbnailUrl(chapter.scriptId)}
+                        alt={partLabel}
+                        w="full"
+                        h="full"
+                        objectFit="cover"
+                      />
+                    ) : (
+                      <Box w="full" h="full" bg="bg.subtle" />
+                    )}
+                  </Box>
+                  <Stack gap="1" p={{ base: '3', md: '4' }} flex="1" justifyContent="center">
+                    <Text fontSize={{ base: 'md', md: 'lg' }} fontWeight="bold">
+                      {partLabel}
+                    </Text>
+                    {hasUniqueDescription ? (
+                      <Text color="fg.muted" fontSize="sm" lineClamp="1">
+                        {chapter.description}
                       </Text>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Root>
-          </Box>
-        ) : (
-          <Text>{t('no_chapters_found', 'No chapters found for this story.')}</Text>
-        )}
+                    ) : null}
+                  </Stack>
+                </HStack>
+              </Link>
+            );
+          })}
+        </Stack>
       </Stack>
     </>
   );

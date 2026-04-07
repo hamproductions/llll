@@ -6,23 +6,26 @@ import { Link } from '~/components/ui/link';
 
 interface CardPageHeaderProps {
   name?: string;
-  description?: string;
+  character?: {
+    id: number;
+    displayLabel: string;
+  } | null;
   t: TFunction;
 }
 
-export function CardPageHeader({ name, description, t }: CardPageHeaderProps) {
+export function CardPageHeader({ name, character, t }: CardPageHeaderProps) {
   return (
     <Stack alignItems="center" w="full">
-      <Box>
+      <Box display="flex" gap="4" flexWrap="wrap" justifyContent="center">
         <Link href="/cards">
           <FaArrowLeft />
           {t('back_to_list')}
         </Link>
+        {character ? <Link href={`/characters/${character.id}`}>{character.displayLabel}</Link> : null}
       </Box>
       <Text textAlign="center" fontSize="3xl" fontWeight="bold">
         {name}
       </Text>
-      <Text textAlign="center">{description}</Text>
     </Stack>
   );
 }

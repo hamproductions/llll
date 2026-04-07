@@ -1,298 +1,197 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useData } from 'vike-react/useData';
-import type { PageData } from './+data';
-import { Text } from '~/components/ui/text';
+import { Box, Grid, HStack, Stack, styled } from 'styled-system/jsx';
 import { Metadata } from '~/components/layout/Metadata';
-import { Box, Stack, HStack, styled } from 'styled-system/jsx';
-import { Link } from '~/components/ui/link';
-import { Table } from '~/components/ui/table';
-import { createListCollection, Select } from '~/components/ui/select';
+import { Card } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
-import { getCardUrl, getPicUrl } from '~/utils/assets';
+import { Link } from '~/components/ui/link';
+import { createListCollection, Select } from '~/components/ui/select';
+import { Text } from '~/components/ui/text';
+import { getCardImageUrl } from '~/utils/assets';
+import type { PageData } from './+data';
 
 export function Page() {
   const { t } = useTranslation();
   const { cards, rarities, characters }: PageData = useData();
-  const [selectedRarity, setSelectedRarity] = useState<string>('');
-  const [characterNameFilter, setCharacterNameFilter] = useState<string>('');
+  const [selectedRarity, setSelectedRarity] = useState('');
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<string>('releaseDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [query, setQuery] = useState('');
+  const [sortBy, setSortBy] = useState('releaseDate');
+  const [awakened, setAwakened] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = 30;
 
-  const sortOptions = createListCollection({
-    items: [
-      { label: t('sort_by_newest', 'Newest'), value: 'releaseDate' },
-      { label: t('sort_by_smile', 'Smile'), value: 'maxSmile' },
-      { label: t('sort_by_pure', 'Pure'), value: 'maxPure' },
-      { label: t('sort_by_cool', 'Cool'), value: 'maxCool' },
-      { label: t('sort_by_mental', 'Mental'), value: 'maxMental' },
-      { label: t('sort_by_rarity', 'Rarity'), value: 'rarity' },
-      { label: t('sort_by_name', 'Name'), value: 'name' }
-    ]
-  });
-
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      // Default to desc for stats and date, asc for names
-      setSortOrder(field === 'name' ? 'asc' : 'desc');
-    }
-  };
-
-  const SortIndicator = ({ field }: { field: string }) => {
-    if (sortBy !== field) return null;
-    return sortOrder === 'asc' ? ' ▲' : ' ▼';
-  };
-
-  // Map for Rarity ID to Name
   const rarityMap = useMemo(() => {
     const map = new Map<number, string>();
-    if (rarities) {
-      for (const rarity of rarities) {
-        map.set(rarity.id, rarity.rarityName ?? String(rarity.id));
-      }
+    for (const rarity of rarities) {
+      map.set(rarity.id, rarity.rarityName ?? String(rarity.id));
     }
     return map;
   }, [rarities]);
 
-  // Map for Character ID to Full Name
   const characterMap = useMemo(() => {
     const map = new Map<number, string>();
-    if (characters) {
-      for (const character of characters) {
-        const fullName =
-          character.displayName ||
-          `${character.nameLast ?? ''} ${character.nameFirst ?? ''}`.trim();
-        map.set(character.id, fullName || String(character.id));
-      }
+    for (const character of characters) {
+      const fullName =
+        character.displayName?.trim() ||
+        `${character.nameLast ?? ''} ${character.nameFirst ?? ''}`.trim() ||
+        String(character.id);
+      map.set(character.id, fullName);
     }
     return map;
   }, [characters]);
 
-  const uniqueRarities = useMemo(() => {
-    if (!cards)
-      return createListCollection({
-        items: []
-      });
-    const rarityIds = new Set<number>();
-    cards.forEach((card) => {
-      if (card.rarity != null) {
-        rarityIds.add(card.rarity);
-      }
-    });
-    return createListCollection({
-      items: [
-        ...Array.from(rarityIds)
-          .map((id) => ({
-            value: id.toString(),
-            label: rarityMap.get(id) ?? String(id)
+  const rarityOptions = useMemo(
+    () =>
+      createListCollection({
+        items: Array.from(new Set(cards.map((card) => card.rarity).filter((rarity) => rarity != null)))
+          .map((rarity) => ({
+            value: String(rarity),
+            label: rarityMap.get(rarity!) ?? String(rarity)
           }))
-          .sort((b, a) => b.value.localeCompare(a.value))
-      ]
-    });
-  }, [cards, rarityMap]);
+          .sort((a, b) => a.label.localeCompare(b.label))
+      }),
+    [cards, rarityMap]
+  );
 
-  const uniqueCharacters = useMemo(() => {
-    if (!cards || !characters) {
-      return createListCollection({ items: [] });
-    }
-    const characterIds = new Set<number>();
-    cards.forEach((card) => {
-      if (card.charactersId != null) {
-        characterIds.add(card.charactersId);
-      }
-    });
-    return createListCollection({
-      items: [
-        ...Array.from(characterIds)
+  const characterOptions = useMemo(
+    () =>
+      createListCollection({
+        items: Array.from(new Set(cards.map((card) => card.charactersId).filter((id) => id != null)))
           .map((id) => ({
-            value: id.toString(),
-            label: characterMap.get(id) ?? String(id)
+            value: String(id),
+            label: characterMap.get(id!) ?? String(id)
           }))
-          .sort((b, a) => b.value.localeCompare(a.value))
-      ]
-    });
-  }, [cards, characters, characterMap]);
+          .sort((a, b) => a.label.localeCompare(b.label))
+      }),
+    [cards, characterMap]
+  );
 
-  const filteredAndSortedCards = useMemo(() => {
-    if (!cards) return [];
+  const filteredCards = useMemo(() => {
+    const normalizedQuery = query.toLowerCase();
     const filtered = cards.filter((card) => {
-      const rarityMatch =
+      const matchesQuery =
+        normalizedQuery === '' ||
+        (card.name ?? '').toLowerCase().includes(normalizedQuery) ||
+        (card.description ?? '').toLowerCase().includes(normalizedQuery) ||
+        (card.characterName ?? '').toLowerCase().includes(normalizedQuery);
+
+      const matchesRarity =
         selectedRarity === '' || (card.rarity != null && String(card.rarity) === selectedRarity);
-      const nameMatch =
-        characterNameFilter === '' ||
-        card.name?.toLowerCase().includes(characterNameFilter.toLowerCase()) ||
-        card.description?.toLowerCase().includes(characterNameFilter.toLowerCase());
-      const characterMatch =
+
+      const matchesCharacter =
         selectedCharacterIds.length === 0 ||
         (card.charactersId != null && selectedCharacterIds.includes(String(card.charactersId)));
-      return rarityMatch && nameMatch && characterMatch;
+
+      return matchesQuery && matchesRarity && matchesCharacter;
     });
 
-    return [...filtered].sort((a, b) => {
-      let valA = a[sortBy as keyof typeof a];
-      let valB = b[sortBy as keyof typeof b];
-
-      if (valA === null || valA === undefined) return sortOrder === 'asc' ? -1 : 1;
-      if (valB === null || valB === undefined) return sortOrder === 'asc' ? 1 : -1;
-
-      if (typeof valA === 'string' && typeof valB === 'string') {
-        const comparison = valA.localeCompare(valB);
-        if (comparison !== 0) return sortOrder === 'asc' ? comparison : -comparison;
-      } else {
-        const comparison = (valA as number) - (valB as number);
-        if (comparison !== 0) return sortOrder === 'asc' ? comparison : -comparison;
+    return [...filtered].sort((left, right) => {
+      if (sortBy === 'name') {
+        return (left.name ?? '').localeCompare(right.name ?? '');
       }
 
-      // Tie-breaker: sort by ID descending for "newest" feeling
-      return b.id - a.id;
+      if (sortBy === 'rarity') {
+        return (right.rarity ?? 0) - (left.rarity ?? 0) || right.id - left.id;
+      }
+
+      return String(right.releaseDate ?? '').localeCompare(String(left.releaseDate ?? '')) || right.id - left.id;
     });
-  }, [cards, selectedRarity, characterNameFilter, selectedCharacterIds, sortBy, sortOrder]);
+  }, [cards, query, selectedCharacterIds, selectedRarity, sortBy]);
 
-  const isAnyFilterActive = useMemo(() => {
-    return (
-      selectedRarity !== '' || characterNameFilter !== '' || selectedCharacterIds.length > 0
-    );
-  }, [selectedRarity, characterNameFilter, selectedCharacterIds]);
+  const totalPages = Math.ceil(filteredCards.length / pageSize);
+  const pageCards = filteredCards.slice((page - 1) * pageSize, page * pageSize);
 
-  const resultSummaryText = useMemo(() => {
-    if (!cards) {
-      return '';
-    }
-    if (cards.length === 0) {
-      return t('no_cards_available_summary', 'No cards available.');
-    }
+  useEffect(() => {
+    setPage(1);
+  }, [query, selectedRarity, selectedCharacterIds, sortBy]);
 
-    if (isAnyFilterActive) {
-      if (filteredAndSortedCards.length > 0) {
-        return t(
-          'filtered_cards_match_summary',
-          'Showing {{count}} of {{total}} cards matching your criteria.',
-          {
-            count: filteredAndSortedCards.length,
-            total: cards.length
-          }
-        );
-      } else {
-        return t('no_cards_match_filters_summary', 'No cards match your criteria.');
-      }
-    } else {
-      // No filters active, cards.length > 0.
-      // filteredCards.length will be equal to cards.length.
-      return t('all_cards_shown_summary', 'Showing all {{count}} cards.', {
-        count: cards.length
-      });
-    }
-  }, [cards, filteredAndSortedCards, isAnyFilterActive, t]);
-
+  const sortOptions = createListCollection({
+    items: [
+      { value: 'releaseDate', label: t('sort_by_newest', 'Newest') },
+      { value: 'rarity', label: t('sort_by_rarity', 'Rarity') },
+      { value: 'name', label: t('sort_by_name', 'Name') }
+    ]
+  });
 
   return (
     <>
       <Metadata />
       <Stack gap="6" alignItems="center" w="full" py="8" _print={{ display: 'none' }}>
-        <Text textAlign="center" fontSize="4xl" fontWeight="bold">
-          {t('card_list_header')}
-        </Text>
+        <Stack gap="2" alignItems="center" w="full" maxW="6xl" px={{ base: '4', md: '0' }}>
+          <Text textAlign="center" fontSize={{ base: '3xl', md: '4xl' }} fontWeight="black">
+            {t('card_list_header')}
+          </Text>
+          <Text color="fg.muted" textAlign="center" maxW="2xl">
+            {t('card_list_description', 'Browse and filter the full card collection.')}
+          </Text>
+        </Stack>
+
         <HStack
-          gap="4"
+          gap="3"
           alignItems="flex-end"
           w="full"
-          maxW="5xl"
+          maxW="6xl"
           mx="auto"
           px={{ base: '4', md: '0' }}
+          flexWrap="wrap"
         >
+          <Input
+            placeholder={t('filter_by_name')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            flex="1"
+            minW={{ base: 'full', lg: '240px' }}
+          />
+
           <Select.Root
-            collection={uniqueRarities}
+            collection={rarityOptions}
             value={[selectedRarity]}
             onValueChange={(details) => setSelectedRarity(details.value[0] ?? '')}
             positioning={{ sameWidth: true }}
-            flex="1"
+            width={{ base: 'full', md: '180px' }}
           >
             <Select.Label>{t('filter_by_rarity')}</Select.Label>
             <Select.Control>
               <Select.Trigger>
-                <Select.ValueText placeholder={t('select_rarity')} />
+                <Select.ValueText placeholder={t('all_rarities')} />
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
               <Select.Content>
-                <Select.ItemGroup id="rarity">
-                  <Select.Item item="">
-                    <Select.ItemText>{t('all_rarities')}</Select.ItemText>
+                {rarityOptions.items.map((option) => (
+                  <Select.Item key={option.value} item={option}>
+                    <Select.ItemText>{option.label}</Select.ItemText>
+                    <Select.ItemIndicator>✓</Select.ItemIndicator>
                   </Select.Item>
-                  {uniqueRarities.items.map((r) => (
-                    <Select.Item key={r.value} item={r}>
-                      <Select.ItemText>{r.label}</Select.ItemText>
-                    </Select.Item>
-                  ))}
-                </Select.ItemGroup>
+                ))}
               </Select.Content>
             </Select.Positioner>
           </Select.Root>
 
           <Select.Root
-            collection={uniqueCharacters}
+            collection={characterOptions}
             value={selectedCharacterIds}
             onValueChange={(details) => setSelectedCharacterIds(details.value)}
             positioning={{ sameWidth: true }}
-            flex="1"
+            width={{ base: 'full', md: '220px' }}
             multiple
           >
             <Select.Label>{t('filter_by_character')}</Select.Label>
             <Select.Control>
               <Select.Trigger>
-                <HStack>
-                  {selectedCharacterIds.length === 1 && (
-                    <styled.object
-                      data={getPicUrl(selectedCharacterIds[0], 'charaIcon')}
-                      type="image/webp"
-                      objectFit="contain"
-                      maxWidth="28px"
-                      maxHeight="28px"
-                    >
-                      <styled.img
-                        src={getPicUrl('mob', 'charaSymbol')}
-                        alt={`Style`}
-                        objectFit="contain"
-                        maxHeight="28px"
-                      />
-                    </styled.object>
-                  )}
-                  <Select.ValueText placeholder={t('select_character')} />
-                </HStack>
+                <Select.ValueText placeholder={t('select_character')} />
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
               <Select.Content>
-                <Select.ItemGroup id="character">
-                  {uniqueCharacters.items.map((char) => (
-                    <Select.Item key={char.value} item={char}>
-                      <Select.ItemText>
-                        <HStack>
-                          <styled.object
-                            data={getPicUrl(char.value ?? 'mob', 'charaIcon')}
-                            type="image/webp"
-                            objectFit="contain"
-                            maxWidth="28px"
-                            maxHeight="28px"
-                          >
-                            <styled.img
-                              src={getPicUrl('mob', 'charaSymbol')}
-                              alt={`Style`}
-                              objectFit="contain"
-                              maxHeight="28px"
-                            />
-                          </styled.object>
-                          <Text>{char.label}</Text>
-                        </HStack>
-                      </Select.ItemText>
-                      <Select.ItemIndicator>✓</Select.ItemIndicator>
-                    </Select.Item>
-                  ))}
-                </Select.ItemGroup>
+                {characterOptions.items.map((option) => (
+                  <Select.Item key={option.value} item={option}>
+                    <Select.ItemText>{option.label}</Select.ItemText>
+                    <Select.ItemIndicator>✓</Select.ItemIndicator>
+                  </Select.Item>
+                ))}
               </Select.Content>
             </Select.Positioner>
           </Select.Root>
@@ -300,198 +199,160 @@ export function Page() {
           <Select.Root
             collection={sortOptions}
             value={[sortBy]}
-            onValueChange={(details) => setSortBy(details.value[0] ?? 'id')}
+            onValueChange={(details) => setSortBy(details.value[0] ?? 'releaseDate')}
             positioning={{ sameWidth: true }}
-            flex="1"
+            width={{ base: 'full', md: '160px' }}
           >
             <Select.Label>{t('sort_by', 'Sort By')}</Select.Label>
             <Select.Control>
               <Select.Trigger>
-                <Select.ValueText placeholder={t('select_sort')} />
+                <Select.ValueText />
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
               <Select.Content>
-                <Select.ItemGroup id="sort">
-                  {sortOptions.items.map((opt) => (
-                    <Select.Item key={opt.value} item={opt}>
-                      <Select.ItemText>{opt.label}</Select.ItemText>
-                    </Select.Item>
-                  ))}
-                </Select.ItemGroup>
+                {sortOptions.items.map((option) => (
+                  <Select.Item key={option.value} item={option}>
+                    <Select.ItemText>{option.label}</Select.ItemText>
+                    <Select.ItemIndicator>✓</Select.ItemIndicator>
+                  </Select.Item>
+                ))}
               </Select.Content>
             </Select.Positioner>
           </Select.Root>
-
-          <Input
-            placeholder={t('filter_by_name')}
-            value={characterNameFilter}
-            onChange={(e) => setCharacterNameFilter(e.target.value)}
-            flex="1"
-          />
         </HStack>
 
-        {resultSummaryText && (
-          <Box
-            w="full"
-            maxW="5xl"
-            px={{ base: '4', md: '0' }} // Consistent padding with filters and table container
-          >
-            <Text color="fg.muted" textAlign="right" fontSize="sm">
-              {resultSummaryText}
-            </Text>
-          </Box>
-        )}
+        <HStack w="full" maxW="6xl" px={{ base: '4', md: '0' }} justifyContent="space-between" alignItems="center">
+          <HStack gap="1">
+            <Box
+              as="button"
+              px="3"
+              py="1"
+              borderRadius="full"
+              fontSize="sm"
+              cursor="pointer"
+              fontWeight={!awakened ? 'bold' : 'normal'}
+              bg={!awakened ? 'bg.emphasized' : 'transparent'}
+              borderWidth="1px"
+              borderColor="border.default"
+              onClick={() => setAwakened(false)}
+            >
+              {t('card_unawakened', 'Normal')}
+            </Box>
+            <Box
+              as="button"
+              px="3"
+              py="1"
+              borderRadius="full"
+              fontSize="sm"
+              cursor="pointer"
+              fontWeight={awakened ? 'bold' : 'normal'}
+              bg={awakened ? 'bg.emphasized' : 'transparent'}
+              borderWidth="1px"
+              borderColor="border.default"
+              onClick={() => setAwakened(true)}
+            >
+              {t('card_awakened', 'Awakened')}
+            </Box>
+          </HStack>
+          <Text color="fg.muted" fontSize="sm">
+            {t('filtered_cards_match_summary', 'Showing {{count}} of {{total}} cards matching your criteria.', {
+              count: filteredCards.length,
+              total: cards.length
+            })}
+          </Text>
+        </HStack>
 
-        {filteredAndSortedCards && filteredAndSortedCards.length > 0 ? (
-          <Box
-            borderRadius="lg"
-            borderWidth="1px"
-            w="full"
-            maxW="5xl"
-            mx="auto"
-            p="0"
-            overflowX="auto"
-          >
-            <Table.Root variant="outline" size="md" w="full">
-              <Table.Head>
-                <Table.Row>
-                  <Table.Header cursor="pointer" onClick={() => handleSort('releaseDate')}>
-                    {t('table_header_image')}
-                    <SortIndicator field="releaseDate" />
-                  </Table.Header>
-                  <Table.Header
-                    textAlign="center"
-                    cursor="pointer"
-                    onClick={() => handleSort('rarity')}
-                  >
-                    {t('table_header_rarity')}
-                    <SortIndicator field="rarity" />
-                  </Table.Header>
-                  <Table.Header cursor="pointer" onClick={() => handleSort('name')}>
-                    {t('table_header_name')}
-                    <SortIndicator field="name" />
-                  </Table.Header>
-                  <Table.Header cursor="pointer" onClick={() => handleSort('charactersId')}>
-                    {t('table_header_character')}
-                    <SortIndicator field="charactersId" />
-                  </Table.Header>
-                  <Table.Header
-                    textAlign="center"
-                    cursor="pointer"
-                    onClick={() => handleSort('style')}
-                  >
-                    {t('table_header_style')}
-                    <SortIndicator field="style" />
-                  </Table.Header>
-                  <Table.Header
-                    textAlign="center"
-                    color="pink.500"
-                    cursor="pointer"
-                    onClick={() => handleSort('maxSmile')}
-                  >
-                    S<SortIndicator field="maxSmile" />
-                  </Table.Header>
-                  <Table.Header
-                    textAlign="center"
-                    color="emerald.500"
-                    cursor="pointer"
-                    onClick={() => handleSort('maxPure')}
-                  >
-                    P<SortIndicator field="maxPure" />
-                  </Table.Header>
-                  <Table.Header
-                    textAlign="center"
-                    color="cyan.500"
-                    cursor="pointer"
-                    onClick={() => handleSort('maxCool')}
-                  >
-                    C<SortIndicator field="maxCool" />
-                  </Table.Header>
-                  <Table.Header
-                    textAlign="center"
-                    color="orange.500"
-                    cursor="pointer"
-                    onClick={() => handleSort('maxMental')}
-                  >
-                    M<SortIndicator field="maxMental" />
-                  </Table.Header>
-                </Table.Row>
-              </Table.Head>
-              <Table.Body>
-                {filteredAndSortedCards.map((card) => (
-                  <Table.Row key={card.id} _hover={{ bg: 'bg.subtle' }}>
-                    <Table.Cell>
-                      {card.cardSeriesId ? (
-                        <styled.img
-                          src={getCardUrl(card.cardSeriesId, `${card.cardSeriesId}1`)}
-                          alt={``}
-                          objectFit="cover"
-                          height="50px"
-                        />
-                      ) : (
-                        <></>
-                      )}
-                    </Table.Cell>
-                    <Table.Cell textAlign="center">
-                      <Text fontSize="sm">
-                        {card.rarity != null ? (rarityMap.get(card.rarity) ?? card.rarity) : '-'}
-                      </Text>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Link
-                        href={`/cards/${card.cardSeriesId}`}
-                        _hover={{ textDecoration: 'underline' }}
-                      >
-                        {card.name}
-                      </Link>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <HStack>
-                        <styled.object
-                          data={getPicUrl(card.charactersId?.toString() ?? 'mob', 'charaSymbol')}
-                          type="image/webp"
-                          objectFit="contain"
-                          maxWidth="28px"
-                          maxHeight="28px"
-                        >
-                          <styled.img
-                            src={getPicUrl('mob', 'charaSymbol')}
-                            alt={`Style`}
-                            objectFit="contain"
-                            maxHeight="28px"
-                          />
-                        </styled.object>
-                        <Text>{card.description}</Text>
-                      </HStack>
-                    </Table.Cell>
-                    <Table.Cell textAlign="center">
-                      <styled.img
-                        src={getPicUrl(card.style?.toString() ?? '0', 'styleIcon')}
-                        alt={`Style`}
-                        objectFit="contain"
-                        maxHeight="28px"
-                      />
-                    </Table.Cell>
-                    <Table.Cell textAlign="center" color="pink.500" fontWeight="bold">
-                      {card.maxSmile}
-                    </Table.Cell>
-                    <Table.Cell textAlign="center" color="emerald.500" fontWeight="bold">
-                      {card.maxPure}
-                    </Table.Cell>
-                    <Table.Cell textAlign="center" color="cyan.500" fontWeight="bold">
-                      {card.maxCool}
-                    </Table.Cell>
-                    <Table.Cell textAlign="center" color="orange.500" fontWeight="bold">
-                      {card.maxMental}
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table.Root>
-          </Box>
-        ) : (
-          <Text>{t('no_cards_found')}</Text>
+        <Grid
+          gridTemplateColumns={{ base: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))', xl: 'repeat(5, minmax(0, 1fr))' }}
+          gap="4"
+          w="full"
+          maxW="6xl"
+          px={{ base: '4', md: '0' }}
+        >
+          {pageCards.map((card) => (
+            <Link key={card.id} href={card.cardSeriesId ? `/cards/${card.cardSeriesId}` : undefined} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Card.Root overflow="hidden" borderRadius="2xl" h="full" cursor="pointer" _hover={{ shadow: 'md' }} transition="shadow 0.2s">
+                {card.cardSeriesId ? (
+                  <styled.img
+                    src={getCardImageUrl(card.cardSeriesId, awakened ? 1 : 0)}
+                    alt={card.name ?? `Card ${card.cardSeriesId}`}
+                    w="full"
+                    display="block"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (!img.dataset.fallback) {
+                        img.dataset.fallback = '1';
+                        img.src = getCardImageUrl(card.cardSeriesId!, awakened ? 0 : 1);
+                      }
+                    }}
+                  />
+                ) : null}
+                <Card.Body p="2.5">
+                  <Stack gap="1">
+                    <Text fontWeight="bold" fontSize="sm" lineClamp="2">
+                      {card.name}
+                    </Text>
+                    <Text fontSize="xs" color="fg.muted" lineClamp="1">
+                      {[card.characterName, card.rarity != null ? rarityMap.get(card.rarity) : null]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Text>
+                  </Stack>
+                </Card.Body>
+              </Card.Root>
+            </Link>
+          ))}
+        </Grid>
+
+        {totalPages > 1 && (
+          <HStack gap="2" flexWrap="wrap" justifyContent="center">
+            {page > 1 && (
+              <Box
+                as="button"
+                px="3"
+                py="1"
+                borderRadius="md"
+                borderWidth="1px"
+                fontSize="sm"
+                cursor="pointer"
+                onClick={() => setPage(page - 1)}
+              >
+                ←
+              </Box>
+            )}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Box
+                key={p}
+                as="button"
+                px="3"
+                py="1"
+                borderRadius="md"
+                borderWidth="1px"
+                fontSize="sm"
+                cursor="pointer"
+                bg={p === page ? 'bg.subtle' : 'transparent'}
+                fontWeight={p === page ? 'bold' : 'normal'}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </Box>
+            ))}
+            {page < totalPages && (
+              <Box
+                as="button"
+                px="3"
+                py="1"
+                borderRadius="md"
+                borderWidth="1px"
+                fontSize="sm"
+                cursor="pointer"
+                onClick={() => setPage(page + 1)}
+              >
+                →
+              </Box>
+            )}
+          </HStack>
         )}
       </Stack>
     </>

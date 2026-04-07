@@ -17,6 +17,10 @@ export interface TextureMap {
 interface CharacterModelProps {
   url: string;
   textures?: TextureMap;
+  textureDir?: string;
+  textureFiles?: string[];
+  textureMap?: Record<string, Record<string, string>>;
+  noAutoScale?: boolean;
   expression?: ExpressionData | null;
   expressionFrame?: number;
 }
@@ -26,9 +30,38 @@ export interface CharacterModelHandle {
   group: THREE.Group | null;
 }
 
+function buildTextureMapFromAssetInfo(
+  textureDir: string,
+  assetTextureMap: Record<string, Record<string, string>>
+): TextureMap {
+  const map: TextureMap = {};
+  for (const [meshName, props] of Object.entries(assetTextureMap)) {
+    const mainTex = props['_MainTex'] || props['_BaseMap'] || props['_Base_color'];
+    const shadowTex = props['_1stShadowTex'];
+    if (mainTex || shadowTex) {
+      map[meshName] = {
+        mainTex: mainTex ? `${textureDir}${mainTex}` : undefined,
+        shadowTex: shadowTex ? `${textureDir}${shadowTex}` : undefined
+      };
+    }
+  }
+  return map;
+}
+
+function ModelErrorFallback() {
+  return (
+    <mesh position={[0, 1, 0]}>
+      <boxGeometry args={[0.5, 0.5, 0.5]} />
+      <meshStandardMaterial color="#ff4444" wireframe />
+    </mesh>
+  );
+}
+
 export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelProps>(
-  function CharacterModel({ url, textures = {}, expression, expressionFrame = 0 }, ref) {
-    const gltf = useLoader(GLTFLoader, url);
+  function CharacterModel({ url, textures: explicitTextures, textureDir, textureFiles, textureMap: assetTextureMap, noAutoScale, expression, expressionFrame = 0 }, ref) {
+    const gltf = useLoader(GLTFLoader, url, undefined, (error) => {
+      console.warn(`Failed to load model: ${url}`, error);
+    });
     const groupRef = useRef<THREE.Group>(null);
     const controllerRef = useRef<ExpressionController | null>(null);
     const textureCache = useRef<Map<string, THREE.Texture>>(new Map());
@@ -48,13 +81,23 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       const scene = gltf.scene;
       scene.rotation.set(0, 0, 0);
 
-      const box = new THREE.Box3().setFromObject(scene);
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const scale = maxDim > 0 ? 2.0 / maxDim : 1;
-      scene.scale.setScalar(scale);
-      scene.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+      if (!noAutoScale) {
+        const box = new THREE.Box3().setFromObject(scene);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = maxDim > 0 ? 2.0 / maxDim : 1;
+        scene.scale.setScalar(scale);
+        scene.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+      } else {
+        scene.scale.setScalar(1);
+        scene.position.set(0, 0, 0);
+      }
+
+      const textures: TextureMap = explicitTextures
+        ?? (textureDir && assetTextureMap && Object.keys(assetTextureMap).length > 0
+          ? buildTextureMapFromAssetInfo(textureDir, assetTextureMap)
+          : {});
 
       const outlines: { parent: THREE.Object3D; mesh: THREE.Mesh }[] = [];
 
@@ -63,12 +106,16 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         if (child.name.includes('_outline')) return;
 
         const meshName = child.name;
-        const baseName = meshName.replace(/[\._]?\d+$/, '');
-        const texConfig = textures[meshName] || textures[baseName] || textures['*'] || {};
+        const dotStripped = meshName.replace(/\.\d{3}$/, '');
+        const numStripped = meshName.replace(/\d{3}$/, '');
+        const texConfig = textures[meshName]
+          || textures[dotStripped]
+          || (numStripped !== meshName && textures[numStripped])
+          || {};
         const mainTex = loadTex(texConfig.mainTex);
         const shadowTex = loadTex(texConfig.shadowTex);
 
-        if (meshName === 'EyeShadow') {
+        if (meshName === 'EyeShadow' || meshName.includes('EyeShadow')) {
           child.material = new THREE.MeshBasicMaterial({
             color: 0x000000, transparent: true, opacity: 0.15, depthWrite: false,
           });
@@ -76,7 +123,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           return;
         }
 
-        if (meshName === 'EyeLens') {
+        if (meshName === 'EyeLens' || meshName.includes('EyeLens')) {
           child.material = new THREE.MeshBasicMaterial({
             map: mainTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
           });
@@ -84,9 +131,13 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           return;
         }
 
-        child.material = createToonMaterial({ mainTex, shadowTex });
+        if (mainTex && shadowTex) {
+          child.material = createToonMaterial({ mainTex, shadowTex });
+        } else if (mainTex) {
+          child.material = new THREE.MeshStandardMaterial({ map: mainTex });
+        }
 
-        if (child.parent && !child.isSkinnedMesh) {
+        if (child.parent && !(child as THREE.SkinnedMesh).isSkinnedMesh) {
           const outline = new THREE.Mesh(child.geometry, createOutlineMaterial());
           outline.name = `${meshName}_outline`;
           outline.renderOrder = -1;
@@ -105,7 +156,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         groupRef.current.clear();
         groupRef.current.add(scene);
       }
-    }, [gltf, textures]);
+    }, [gltf, explicitTextures, textureDir, assetTextureMap, noAutoScale]);
 
     useEffect(() => {
       if (!controllerRef.current || !expression) return;

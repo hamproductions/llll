@@ -1,12 +1,16 @@
-import { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useEffect, useRef } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
+import * as THREE from 'three';
 
 type BgMode = 'dark' | 'light' | 'transparent';
+type CameraMode = 'orbit' | 'fps' | 'turntable';
 
 interface ViewportProps {
   bgMode?: BgMode;
   showGrid?: boolean;
+  cameraMode?: CameraMode;
+  resetKey?: string;
   children?: React.ReactNode;
 }
 
@@ -16,27 +20,141 @@ const bgColors: Record<BgMode, string> = {
   transparent: 'transparent'
 };
 
-export function Viewport({ bgMode = 'dark', showGrid = true, children }: ViewportProps) {
+function CameraReset({ resetKey, cameraMode }: { resetKey?: string; cameraMode: CameraMode }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (cameraMode === 'fps') {
+      camera.position.set(0, 2, -5);
+      camera.lookAt(0, 1, 0);
+    } else {
+      camera.position.set(0, 1.2, -3);
+      camera.lookAt(0, 1, 0);
+    }
+  }, [resetKey, cameraMode]);
+
+  return null;
+}
+
+function FPSControls() {
+  const { camera, gl } = useThree();
+  const keys = useRef<Record<string, boolean>>({});
+  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
+  const locked = useRef(false);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => { keys.current[e.code] = true; };
+    const onKeyUp = (e: KeyboardEvent) => { keys.current[e.code] = false; };
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button === 0 || e.button === 2) {
+        gl.domElement.requestPointerLock();
+      }
+    };
+
+    const onPointerLockChange = () => {
+      locked.current = document.pointerLockElement === gl.domElement;
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!locked.current) return;
+      euler.current.setFromQuaternion(camera.quaternion);
+      euler.current.y -= e.movementX * 0.002;
+      euler.current.x -= e.movementY * 0.002;
+      euler.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.current.x));
+      camera.quaternion.setFromEuler(euler.current);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    gl.domElement.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('pointerlockchange', onPointerLockChange);
+    document.addEventListener('mousemove', onMouseMove);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      gl.domElement.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('pointerlockchange', onPointerLockChange);
+      document.removeEventListener('mousemove', onMouseMove);
+      if (document.pointerLockElement === gl.domElement) {
+        document.exitPointerLock();
+      }
+    };
+  }, [camera, gl]);
+
+  useFrame((_, delta) => {
+    const speed = keys.current['ShiftLeft'] ? 15 : 5;
+    const move = new THREE.Vector3();
+
+    if (keys.current['KeyW']) move.z -= 1;
+    if (keys.current['KeyS']) move.z += 1;
+    if (keys.current['KeyA']) move.x -= 1;
+    if (keys.current['KeyD']) move.x += 1;
+    if (keys.current['Space']) move.y += 1;
+    if (keys.current['ControlLeft'] || keys.current['KeyQ']) move.y -= 1;
+
+    if (move.lengthSq() > 0) {
+      move.normalize().multiplyScalar(speed * delta);
+      move.applyQuaternion(camera.quaternion);
+      camera.position.add(move);
+    }
+  });
+
+  return null;
+}
+
+function SceneBackground({ bgMode }: { bgMode: BgMode }) {
+  const { scene, gl } = useThree();
+
+  useEffect(() => {
+    if (bgMode === 'transparent') {
+      scene.background = null;
+      gl.setClearColor(0x000000, 0);
+    } else {
+      scene.background = new THREE.Color(bgColors[bgMode]);
+      gl.setClearColor(bgColors[bgMode], 1);
+    }
+  }, [bgMode, scene, gl]);
+
+  return null;
+}
+
+export function Viewport({ bgMode = 'dark', showGrid = true, cameraMode = 'orbit', resetKey, children }: ViewportProps) {
+  const isFps = cameraMode === 'fps';
+
   return (
     <Canvas
-      camera={{ position: [0, 1.2, 3], fov: 35, near: 0.01, far: 100 }}
-      style={{
-        width: '100%',
-        height: '100%',
-        background: bgColors[bgMode]
+      camera={{
+        position: isFps ? [0, 2, -5] : [0, 1.2, -3],
+        fov: isFps ? 70 : 35,
+        near: 0.01,
+        far: 1000
       }}
-      gl={{ alpha: bgMode === 'transparent', antialias: true }}
+      style={{ width: '100%', height: '100%' }}
+      gl={{ alpha: true, antialias: true }}
     >
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[3, 5, 2]} intensity={1.2} />
-      <directionalLight position={[-2, 3, -1]} intensity={0.3} />
-      <OrbitControls
-        target={[0, 1, 0]}
-        minDistance={1}
-        maxDistance={10}
-        enableDamping
-        dampingFactor={0.1}
-      />
+      <SceneBackground bgMode={bgMode} />
+      <ambientLight intensity={0.8} />
+      <hemisphereLight args={['#ffffff', '#444466', 0.6]} />
+      <directionalLight position={[5, 8, 3]} intensity={1.5} />
+      <directionalLight position={[-3, 4, -2]} intensity={0.5} />
+      {isFps && <pointLight position={[0, 3, 0]} intensity={1} distance={30} />}
+      <CameraReset resetKey={resetKey} cameraMode={cameraMode} />
+      {cameraMode === 'orbit' || cameraMode === 'turntable' ? (
+        <OrbitControls
+          target={[0, 1, 0]}
+          minDistance={0.3}
+          maxDistance={50}
+          enablePan
+          enableDamping
+          dampingFactor={0.1}
+          autoRotate={cameraMode === 'turntable'}
+          autoRotateSpeed={2}
+        />
+      ) : (
+        <FPSControls />
+      )}
       {showGrid && (
         <Grid
           args={[10, 10]}
@@ -46,7 +164,7 @@ export function Viewport({ bgMode = 'dark', showGrid = true, children }: Viewpor
           sectionSize={2}
           sectionThickness={1}
           sectionColor="#6a6a8a"
-          fadeDistance={10}
+          fadeDistance={isFps ? 100 : 10}
           infiniteGrid
           position={[0, 0, 0]}
         />

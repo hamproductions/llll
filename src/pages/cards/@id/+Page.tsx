@@ -23,7 +23,9 @@ export function Page() {
     styleMovies,
     styleVoices,
     limitBreakMaterials,
-    limitBreakMaterialRates
+    limitBreakMaterialRates,
+    character,
+    rarityMap
   }: PageData = useData();
 
   const basicCardInfo = cardDataList?.[0];
@@ -80,7 +82,7 @@ export function Page() {
         {/* Metadata is handled in +Head.tsx */}
         <CardPageHeader
           name={basicCardInfo.name ?? undefined}
-          description={basicCardInfo.description ?? undefined}
+          character={character}
           t={t}
         />
         <Stack gap="2" w="full" mt="4">
@@ -95,6 +97,7 @@ export function Page() {
                   alt={`${selectedCardData.name} Unawakened`}
                   h="full"
                   mx="auto"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               </Box>
               <Box>
@@ -106,13 +109,14 @@ export function Page() {
                   alt={`${selectedCardData.name} Awakened`}
                   h="full"
                   mx="auto"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               </Box>
             </Stack>
           )}
 
           <Stack gap="4" borderRadius="md" borderWidth="1px" w="full" mt="4" p="4">
-            <SelectedCardDataDisplay selectedCardData={selectedCardData} t={t} />
+            <SelectedCardDataDisplay selectedCardData={selectedCardData} rarityMap={rarityMap} t={t} />
 
             {cardDataList.length > 1 && (
               <LimitBreakSelector

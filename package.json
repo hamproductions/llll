@@ -31,6 +31,12 @@
     "check-version": "bun scripts/check-version.ts",
     "gh-pages": "bunx gh-pages -d dist/client -b gh-pages",
     "deploy": "PUBLIC_ENV__BASE_URL=/llll bun run ci:build && bun gh-pages",
+    "pipeline:fetch-all-assets": "bun run scripts/fetch-all-assets.ts",
+    "pipeline:fetch-shared-assets": "bun run scripts/fetch-shared-assets.ts",
+    "pipeline:process-image-archive": "bun run scripts/process-image-archive.ts",
+    "pipeline:audit-assets": "bun run scripts/audit-assets.ts",
+    "pipeline:upload-assets": "node scripts/upload-to-gcs.js",
+    "pipeline:sync-assets": "bun run pipeline:fetch-all-assets && bun run pipeline:audit-assets && bun run pipeline:upload-assets",
     "test:combo": "bun test ComboCounter",
     "upload-assets": "node scripts/upload-to-gcs.js",
     "cache:clear": "node scripts/clear-cache.js"

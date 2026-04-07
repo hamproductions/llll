@@ -22,10 +22,17 @@ const isProduction = process.env.NODE_ENV === 'production';
 export default defineConfig({
   define: {
     'import.meta.env.PUBLIC_ENV__APP_VERSION': JSON.stringify(appVersion),
-    'import.meta.env.PUBLIC_ENV__BUILD_TIMESTAMP': JSON.stringify(buildTimestamp)
+    'import.meta.env.PUBLIC_ENV__BUILD_TIMESTAMP': JSON.stringify(buildTimestamp),
+    'import.meta.env.PUBLIC_ENV__ROOT_DATA_DIR': JSON.stringify(resolve(__dirname, '../data')),
+    'import.meta.env.PUBLIC_ENV__APP_DATA_DIR': JSON.stringify(resolve(__dirname, 'data'))
   },
   ssr: {
     // noExternal: ['react']
+  },
+  server: {
+    fs: {
+      allow: [resolve(__dirname, '.'), resolve(__dirname, '../data')]
+    }
   },
   plugins: [
     tsconfigPaths(),
