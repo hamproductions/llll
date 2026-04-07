@@ -52,8 +52,16 @@ async function scanCategory(category: string): Promise<Asset3D[]> {
     if (!stat.isDirectory()) continue;
 
     const files = await fs.readdir(assetDir);
-    const glb = files.find((f) => f.endsWith('.glb'));
-    if (!glb) continue;
+    const glbs = files.filter((f) => f.endsWith('.glb'));
+    if (glbs.length === 0) continue;
+    let glb = glbs[0];
+    if (glbs.length > 1) {
+      let maxSize = 0;
+      for (const g of glbs) {
+        const s = (await fs.stat(path.join(assetDir, g))).size;
+        if (s > maxSize) { maxSize = s; glb = g; }
+      }
+    }
 
     const textures = files.filter((f) => f.endsWith('.png'));
     const glbPath = `${category}/${entry}/${glb}`;

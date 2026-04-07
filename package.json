@@ -34,6 +34,7 @@
     "pipeline:fetch-all-assets": "bun run scripts/fetch-all-assets.ts",
     "pipeline:fetch-shared-assets": "bun run scripts/fetch-shared-assets.ts",
     "pipeline:process-image-archive": "bun run scripts/process-image-archive.ts",
+    "pipeline:fetch-3d-assets": "bun run scripts/fetch-3d-assets.ts",
     "pipeline:audit-assets": "bun run scripts/audit-assets.ts",
     "pipeline:upload-assets": "node scripts/upload-to-gcs.js",
     "pipeline:sync-assets": "bun run pipeline:fetch-all-assets && bun run pipeline:audit-assets && bun run pipeline:upload-assets",
