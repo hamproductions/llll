@@ -126,7 +126,7 @@ export function Viewport({ bgMode = 'dark', showGrid = true, cameraMode = 'orbit
   return (
     <Canvas
       camera={{
-        position: isFps ? [0, 2, -5] : [0, 1.2, -3],
+        position: isFps ? [0, 2, 5] : [0, 1.2, -3],
         fov: isFps ? 70 : 35,
         near: 0.01,
         far: 1000

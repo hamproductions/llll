@@ -79,7 +79,6 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
     useEffect(() => {
       const scene = gltf.scene;
-      scene.rotation.set(0, 0, 0);
 
       if (!noAutoScale) {
         const box = new THREE.Box3().setFromObject(scene);
@@ -99,7 +98,8 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           ? buildTextureMapFromAssetInfo(textureDir, assetTextureMap)
           : {});
 
-      const outlines: { parent: THREE.Object3D; mesh: THREE.Mesh }[] = [];
+      // outlines disabled - don't work with 180° rotation fix
+      // const outlines: { parent: THREE.Object3D; mesh: THREE.Mesh }[] = [];
 
       scene.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;
@@ -137,19 +137,8 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           child.material = new THREE.MeshStandardMaterial({ map: mainTex });
         }
 
-        if (child.parent && !(child as THREE.SkinnedMesh).isSkinnedMesh) {
-          const outline = new THREE.Mesh(child.geometry, createOutlineMaterial());
-          outline.name = `${meshName}_outline`;
-          outline.renderOrder = -1;
-          if (child.morphTargetDictionary) {
-            outline.morphTargetDictionary = child.morphTargetDictionary;
-            outline.morphTargetInfluences = child.morphTargetInfluences;
-          }
-          outlines.push({ parent: child.parent, mesh: outline });
-        }
       });
 
-      outlines.forEach(({ parent, mesh }) => parent.add(mesh));
       controllerRef.current = new ExpressionController(scene);
 
       if (groupRef.current) {

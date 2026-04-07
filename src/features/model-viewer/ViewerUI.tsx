@@ -180,11 +180,13 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
       <Box flex="1" position="relative" minH={{ base: '60vh', lg: '400px' }}>
         <Viewport bgMode={bgMode} showGrid={showGrid} cameraMode={cameraMode} resetKey={selectedAssetId}>
           <Suspense fallback={null}>
+            {/* TODO: environment room disabled until scale matching is resolved
             {selectedAsset?.category !== 'stage' && (
               <ModelErrorBoundary resetKey="env">
                 <EnvironmentRoom />
               </ModelErrorBoundary>
             )}
+            */}
             <ModelErrorBoundary resetKey={selectedAssetId}>
               {modelUrl ? (
                 <CharacterModel
