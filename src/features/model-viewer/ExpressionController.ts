@@ -67,9 +67,47 @@ export class ExpressionController {
     }
   }
 
+  private static _loggedTargets = false;
+
   setBlendShape(name: string, weight: number) {
-    if (!this.targets.has(name)) return;
-    this.targetWeights.set(name, weight / 100);
+    if (!ExpressionController._loggedTargets && this.targets.size > 0) {
+      ExpressionController._loggedTargets = true;
+      console.group('%c[Expression] All available targets', 'color: #ce93d8');
+      console.table(Object.fromEntries(
+        Array.from(this.targets.keys()).map(k => [k, { index: this.targets.get(k)!.index, mesh: this.targets.get(k)!.mesh.name }])
+      ));
+      console.groupEnd();
+    }
+
+    const resolved = this.targets.has(name) ? name : this.fuzzyMatch(name);
+    if (!resolved) {
+      console.warn(`[Expression] NO MATCH: "${name}" weight=${weight} | All targets: [${Array.from(this.targets.keys()).join(', ')}]`);
+      return;
+    }
+    if (resolved !== name) {
+      console.log(`[Expression] FUZZY: "${name}" → "${resolved}" weight=${weight}`);
+    }
+    this.targetWeights.set(resolved, weight / 100);
+  }
+
+  private fuzzyMatch(name: string): string | null {
+    const keys = Array.from(this.targets.keys());
+    const lower = name.toLowerCase();
+
+    // Try exact case-insensitive
+    const exact = keys.find(k => k.toLowerCase() === lower);
+    if (exact) return exact;
+
+    // Try suffix match (strip mesh prefix like "Brow_.")
+    const suffix = name.split('.').pop()?.toLowerCase() || lower;
+    const suffixMatch = keys.find(k => k.toLowerCase().endsWith(suffix));
+    if (suffixMatch) return suffixMatch;
+
+    // Try contains
+    const contains = keys.find(k => k.toLowerCase().includes(suffix) || suffix.includes(k.toLowerCase()));
+    if (contains) return contains;
+
+    return null;
   }
 
   resetTargets() {

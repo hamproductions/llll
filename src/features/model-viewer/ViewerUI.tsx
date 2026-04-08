@@ -221,6 +221,25 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
     return get3dAssetUrl(`animations/${String(charName).toLowerCase()}.glb`);
   }, [selectedAsset]);
 
+  interface ExpressionDef { name: string; shapes: Record<string, number> }
+  const [expressionDefs, setExpressionDefs] = useState<ExpressionDef[]>([]);
+  const [activeExpressionDef, setActiveExpressionDef] = useState<string | null>(null);
+
+  useEffect(() => {
+    setExpressionDefs([]);
+    setActiveExpressionDef(null);
+    if (selectedAsset?.category !== 'costume') return;
+    const charName = selectedAsset.metadata.characterName;
+    if (!charName) return;
+    const url = get3dAssetUrl(`animations/${String(charName).toLowerCase()}_expressions.json`);
+    fetch(url)
+      .then(r => r.json())
+      .then((data: { expressions: ExpressionDef[] }) => {
+        setExpressionDefs(data.expressions);
+      })
+      .catch(() => {});
+  }, [selectedAsset]);
+
   useEffect(() => {
     setAnimNames([]);
     setActiveAnim(null);
@@ -411,6 +430,40 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
           </>
         )}
 
+        {expressionDefs.length > 0 && (
+          <Stack gap="2">
+            <Text fontWeight="semibold" fontSize="sm">Expressions ({expressionDefs.length})</Text>
+            <Stack gap="1" maxH="200px" overflowY="auto">
+              {expressionDefs.map((expr) => {
+                const shortName = expr.name.replace(/^.*?_/, '').replace(/_/g, ' ');
+                return (
+                  <Button
+                    key={expr.name}
+                    size="xs"
+                    variant={activeExpressionDef === expr.name ? 'solid' : 'outline'}
+                    justifyContent="flex-start"
+                    onClick={() => {
+                      const controller = modelRef.current?.expressionController;
+                      if (!controller) return;
+                      controller.reset();
+                      if (activeExpressionDef === expr.name) {
+                        setActiveExpressionDef(null);
+                        return;
+                      }
+                      for (const [shapeName, weight] of Object.entries(expr.shapes)) {
+                        controller.setBlendShape(shapeName, weight);
+                      }
+                      setActiveExpressionDef(expr.name);
+                    }}
+                  >
+                    <Text fontSize="xs" truncate>{shortName}</Text>
+                  </Button>
+                );
+              })}
+            </Stack>
+          </Stack>
+        )}
+
         {Object.keys(meshToggles).length > 0 && (
           <Stack gap="2">
             <Text fontWeight="semibold" fontSize="sm">Parts</Text>
@@ -427,6 +480,19 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
                   }}
                 >
                   {name}
+                </Button>
+              ))}
+            </HStack>
+          </Stack>
+        )}
+
+        {selectedAsset?.category === 'costume' && (
+          <Stack gap="2">
+            <Text fontWeight="semibold" fontSize="sm">Pose</Text>
+            <HStack gap="2" flexWrap="wrap">
+              {(['tpose', 'apose', 'soipo'] as const).map((pose) => (
+                <Button key={pose} size="xs" variant="outline" onClick={() => modelRef.current?.setPose(pose)}>
+                  {{ tpose: 'T-Pose', apose: 'A-Pose', soipo: 'ソイポ' }[pose]}
                 </Button>
               ))}
             </HStack>

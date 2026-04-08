@@ -229,7 +229,8 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
             if (eyeTex) {
               child.material = new THREE.MeshBasicMaterial({ map: eyeTex });
               child.renderOrder = 1;
-              // v2 single-mesh: need to clone highlight + lens on top
+              // v2 single-mesh Eye: clone highlight on top (lens handled by separate EyeLens mesh)
+              // v3 multi-prim Eye: clone highlight + lens (no separate EyeLens mesh)
               if (meshName === 'Eye') {
                 if (highlightTex) {
                   const hlMesh = child.clone();
@@ -239,15 +240,6 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
                   });
                   hlMesh.renderOrder = 2;
                   child.parent?.add(hlMesh);
-                }
-                if (eyeLensTex) {
-                  const lensMesh = child.clone();
-                  lensMesh.material = new THREE.MeshBasicMaterial({
-                    map: eyeLensTex, transparent: true, blending: THREE.AdditiveBlending,
-                    opacity: 0.6, depthWrite: false,
-                  });
-                  lensMesh.renderOrder = 3;
-                  child.parent?.add(lensMesh);
                 }
               }
             }
@@ -400,6 +392,45 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       },
       stopAnimation() {
         mixerRef.current?.stopAllAction();
+      },
+      setPose(pose: 'tpose' | 'apose' | 'soipo') {
+        const scene = groupRef.current?.children[0];
+        if (!scene) return;
+        const bones: Record<string, THREE.Bone> = {};
+        scene.traverse((node) => {
+          if (node instanceof THREE.Bone) bones[node.name] = node;
+        });
+
+        const findBone = (suffix: string) => Object.entries(bones).find(([k]) => k.endsWith(suffix))?.[1];
+        // Only reset arm bones — legs/hips/spine have critical bind pose rotations
+        for (const suffix of ['_LArm', '_RArm', '_LForeArm', '_RForeArm']) {
+          const bone = findBone(suffix);
+          if (bone) bone.quaternion.identity();
+        }
+
+        if (pose === 'tpose') return;
+
+        const lArm = findBone('_LArm');
+        const rArm = findBone('_RArm');
+        const lForeArm = findBone('_LForeArm');
+        const rForeArm = findBone('_RForeArm');
+        const lUpLeg = findBone('_LUpLeg');
+        const rUpLeg = findBone('_RUpLeg');
+        const lLeg = findBone('_LLeg');
+        const rLeg = findBone('_RLeg');
+
+        if (pose === 'apose') {
+          if (lArm) lArm.quaternion.setFromEuler(new THREE.Euler(0, 0.7, 0));
+          if (rArm) rArm.quaternion.setFromEuler(new THREE.Euler(0, -0.7, 0));
+        }
+
+        if (pose === 'soipo') {
+          // Left arm up high pointing, right arm down
+          if (lArm) lArm.quaternion.setFromEuler(new THREE.Euler(0, 0.4, 0.5));
+          if (lForeArm) lForeArm.quaternion.setFromEuler(new THREE.Euler(0, -0.5, 0));
+          if (rArm) rArm.quaternion.setFromEuler(new THREE.Euler(0, 0.8, -0.3));
+          if (rForeArm) rForeArm.quaternion.setFromEuler(new THREE.Euler(0, 0.4, 0));
+        }
       },
     }));
 
