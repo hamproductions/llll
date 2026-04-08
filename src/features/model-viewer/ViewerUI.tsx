@@ -250,6 +250,23 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
     return () => window.clearTimeout(timeout);
   }, [selectedAssetId, animationUrl]);
 
+  interface MotionDef { id: string; description: string | null }
+  const [motionDefs, setMotionDefs] = useState<MotionDef[]>([]);
+  const [activeMotion, setActiveMotion] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMotionDefs([]);
+    setActiveMotion(null);
+    if (selectedAsset?.category !== 'costume') return;
+    const url = get3dAssetUrl('metadata/motions.json');
+    fetch(url)
+      .then(r => r.json())
+      .then((data: Array<{ id: string; description: string | null }>) => {
+        setMotionDefs(data.slice(0, 50));
+      })
+      .catch(() => {});
+  }, [selectedAsset?.category]);
+
   const hasBlendShapes = selectedAsset?.category === 'costume' || selectedAsset?.category === 'unknown';
   const defaultCameraMode = useCallback((): CameraMode => {
     if (selectedAsset?.category === 'stage') return 'fps';
@@ -496,6 +513,34 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
                 </Button>
               ))}
             </HStack>
+          </Stack>
+        )}
+
+        {motionDefs.length > 0 && selectedAsset?.category === 'costume' && (
+          <Stack gap="2">
+            <Text fontWeight="semibold" fontSize="sm">Motion ({motionDefs.length})</Text>
+            <Stack gap="1" maxH="200px" overflowY="auto">
+              {motionDefs.map((mot) => (
+                <Button
+                  key={mot.id}
+                  size="xs"
+                  variant={activeMotion === mot.id ? 'solid' : 'outline'}
+                  justifyContent="flex-start"
+                  onClick={() => {
+                    if (activeMotion === mot.id) {
+                      modelRef.current?.stopAnimation();
+                      setActiveMotion(null);
+                      return;
+                    }
+                    const url = get3dAssetUrl(`motions/${mot.id}.glb`);
+                    modelRef.current?.loadMotionGlb(url);
+                    setActiveMotion(mot.id);
+                  }}
+                >
+                  <Text fontSize="xs" truncate>{mot.description || mot.id}</Text>
+                </Button>
+              ))}
+            </Stack>
           </Stack>
         )}
 
