@@ -82,6 +82,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
     const textureCache = useRef<Map<string, THREE.Texture>>(new Map());
     const mixerRef = useRef<THREE.AnimationMixer | null>(null);
     const animClipsRef = useRef<THREE.AnimationClip[]>([]);
+    const faceFollowRef = useRef<{ face: THREE.Object3D; spine: THREE.Bone } | null>(null);
 
     const loadTex = (path: string | undefined): THREE.Texture | null => {
       if (!path) return null;
@@ -293,6 +294,20 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       applyMaterials(scene);
       applyScene(scene);
       controllerRef.current = new ExpressionController(scene);
+
+      // Find body Spine_03 bone and face node for face-follow sync
+      let bodySpine03: THREE.Bone | null = null;
+      let faceNode: THREE.Object3D | null = null;
+      scene.traverse((node) => {
+        if (node instanceof THREE.Bone && node.name.endsWith('_Spine_03') && node.name.includes('LtA')) bodySpine03 = node;
+        if (!faceNode && node.name.startsWith('3d_face_')) faceNode = node;
+      });
+      if (bodySpine03 && faceNode) {
+        // The face prefab's root bone (Kah_Spine_03) mirrors the body's Spine_03
+        // Store the initial offset between them
+        faceFollowRef.current = { face: faceNode, spine: bodySpine03 };
+        console.log(`[FACE] Will sync ${faceNode.name} to ${bodySpine03.name}`);
+      }
 
       if (groupRef.current) {
         groupRef.current.clear();
