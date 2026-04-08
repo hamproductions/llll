@@ -177,20 +177,71 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
         const meshName = child.name;
 
-        // v3 GLBs: embedded textures, just fix wrapping and let PBR materials render
+        // v3 GLBs: embedded textures — apply eye special cases, make others flat/matte
         if (!hasExternalTextures) {
+          const origMatName = (child.material as THREE.Material).name || '';
           const mats = Array.isArray(child.material) ? child.material : [child.material];
-          for (const m of mats) {
-            const stdMat = m as THREE.MeshStandardMaterial;
-            const tex = stdMat.map;
-            console.log(`[V3] ${meshName}: mat=${stdMat.name} map=${!!tex} color=${stdMat.color?.getHexString()} type=${stdMat.type}` +
-              (tex ? ` tex.image=${!!tex.image} tex.source=${(tex.source as any)?.data ? 'has data' : 'no data'} flipY=${tex.flipY} encoding=${tex.colorSpace} size=${tex.image?.width}x${tex.image?.height}` : ''));
-            if (stdMat.map) {
-              stdMat.map.wrapS = THREE.RepeatWrapping;
-              stdMat.map.wrapT = THREE.RepeatWrapping;
+          const embeddedMap = (mats[0] as THREE.MeshStandardMaterial)?.map;
+
+          // Eye highlight layer
+          if (origMatName.includes('EyeHi') || origMatName.includes('Highlight')) {
+            child.material = new THREE.MeshBasicMaterial({
+              map: highlightTex || embeddedMap, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            child.renderOrder = 2;
+            if (eyeLensTex) {
+              const lensMesh = child.clone();
+              lensMesh.material = new THREE.MeshBasicMaterial({
+                map: eyeLensTex, transparent: true, blending: THREE.AdditiveBlending, opacity: 0.6, depthWrite: false,
+              });
+              lensMesh.renderOrder = 3;
+              child.parent?.add(lensMesh);
             }
-            stdMat.roughness = 1;
-            stdMat.metalness = 0;
+            return;
+          }
+
+          // Eye base
+          if (meshName === 'Eye' || meshName.startsWith('Eye_')) {
+            if (embeddedMap) {
+              embeddedMap.wrapS = THREE.RepeatWrapping;
+              embeddedMap.wrapT = THREE.RepeatWrapping;
+              child.material = new THREE.MeshBasicMaterial({ map: embeddedMap });
+              child.renderOrder = 1;
+            }
+            return;
+          }
+
+          // EyeShadow
+          if (meshName === 'EyeShadow' || meshName.includes('EyeShadow')) {
+            child.material = new THREE.MeshBasicMaterial({
+              color: 0x000000, transparent: true, opacity: 0.15, depthWrite: false,
+            });
+            child.renderOrder = 5;
+            return;
+          }
+
+          // Everything else: try toon shader if shadow texture available
+          if (embeddedMap) {
+            embeddedMap.wrapS = THREE.RepeatWrapping;
+            embeddedMap.wrapT = THREE.RepeatWrapping;
+            // Try to find shadow texture: col0 → col1
+            const texName = embeddedMap.name || origMatName;
+            const shadowFile = textureFiles?.find(f => {
+              const fl = f.toLowerCase();
+              // Match col1 for the same mesh/material
+              if (!fl.includes('_col1')) return false;
+              // Extract the base name from the material name or texture name
+              const matBase = origMatName.replace('_MT', '').toLowerCase();
+              const fileBase = fl.replace('_col1.png', '');
+              return fileBase.includes(matBase) || matBase.includes(fileBase);
+            });
+            const shadowTex = shadowFile && textureDir ? loadTex(`${dir}${shadowFile}`) : null;
+
+            if (shadowTex) {
+              child.material = createToonMaterial({ mainTex: embeddedMap, shadowTex });
+            } else {
+              child.material = new THREE.MeshBasicMaterial({ map: embeddedMap });
+            }
           }
           return;
         }
