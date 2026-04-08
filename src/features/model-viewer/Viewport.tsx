@@ -55,6 +55,7 @@ function FPSControls() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (!locked.current) return;
       if (['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ'].includes(e.code)) e.preventDefault();
       keys.current[e.code] = true;
     };

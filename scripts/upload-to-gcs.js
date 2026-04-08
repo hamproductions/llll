@@ -25,7 +25,9 @@ const storage = KEY_FILE
 const bucket = storage.bucket(BUCKET_NAME);
 
 async function* walkDir(dir) {
-  const dirents = await readdir(dir, { withFileTypes: true });
+  let dirents;
+  try { dirents = await readdir(dir, { withFileTypes: true }); }
+  catch { return; }
   for (const dirent of dirents) {
     const path = join(dir, dirent.name);
     if (dirent.isDirectory()) {
