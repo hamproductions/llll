@@ -397,33 +397,52 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         mixerRef.current?.stopAllAction();
       },
       loadMotionGlb(url: string) {
-        const costumeScene = groupRef.current?.children[0];
-        if (!groupRef.current || !costumeScene) return;
+        const costumeRoot = groupRef.current?.children[0];
+        if (!groupRef.current || !costumeRoot) return;
         const loader = new GLTFLoader();
         loader.load(url, (motionGltf) => {
           if (!groupRef.current) return;
           mixerRef.current?.stopAllAction();
 
-          // Debug: compare what the mixer will search vs what exists
-          const costumeRoot = groupRef.current.children[0];
-          console.log(`[MOTION] Costume root: "${costumeRoot?.name}", type=${costumeRoot?.type}`);
-          console.log(`[MOTION] Motion scene root: "${motionGltf.scene.name}"`);
+          // Build suffix→costumeBoneName map for retargeting
+          const costumeBoneMap = new Map<string, string>();
+          costumeRoot.traverse(n => {
+            if ((n as any).isBone) {
+              // Strip prefix: KahLtA_Hips → _Hips, IzuDeA_LArm → _LArm
+              const underscoreIdx = n.name.indexOf('_');
+              if (underscoreIdx > 0) {
+                costumeBoneMap.set(n.name.substring(underscoreIdx), n.name);
+              }
+              costumeBoneMap.set(n.name, n.name);
+            }
+          });
 
-          // Log first few bones in costume
-          const costumeBones: string[] = [];
-          costumeRoot?.traverse(n => { if ((n as any).isBone) costumeBones.push(n.name); });
-          console.log(`[MOTION] Costume bones (${costumeBones.length}): ${costumeBones.slice(0,5).join(', ')}...`);
+          // Retarget animation tracks to match costume bone names
+          const clips = motionGltf.animations.map(clip => {
+            const tracks = clip.tracks.map(track => {
+              const [nodeName, ...propParts] = track.name.split('.');
+              const prop = '.' + propParts.join('.');
 
-          // Log first few track targets
-          if (motionGltf.animations.length > 0) {
-            const tracks = motionGltf.animations[0].tracks.slice(0, 5);
-            console.log(`[MOTION] Track names: ${tracks.map(t => t.name).join(', ')}`);
-          }
+              // Try exact match first
+              if (costumeBoneMap.has(nodeName)) return track;
 
-          // Apply motion animations to the COSTUME scene
+              // Try suffix match: KahDeA_Hips → _Hips → lookup → KahLtA_Hips
+              const underscoreIdx = nodeName.indexOf('_');
+              if (underscoreIdx > 0) {
+                const suffix = nodeName.substring(underscoreIdx);
+                const mapped = costumeBoneMap.get(suffix);
+                if (mapped) {
+                  return new (track.constructor as any)(`${mapped}${prop}`, track.times, track.values);
+                }
+              }
+              return track;
+            });
+            return new THREE.AnimationClip(clip.name, clip.duration, tracks);
+          });
+
           const mixer = new THREE.AnimationMixer(costumeRoot);
           mixerRef.current = mixer;
-          animClipsRef.current = motionGltf.animations;
+          animClipsRef.current = clips;
 
           const loop = motionGltf.animations.find(c => c.name.endsWith('@l')) || motionGltf.animations[0];
           if (loop) {
