@@ -175,15 +175,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
     return () => window.clearTimeout(timeout);
   }, [selectedAssetId]);
 
-  const [animNames, setAnimNames] = useState<string[]>([]);
-  const [activeAnim, setActiveAnim] = useState<string | null>(null);
-
-  const animationUrl = useMemo(() => {
-    if (selectedAsset?.category !== 'costume') return undefined;
-    const charName = selectedAsset.metadata.characterName;
-    if (!charName) return undefined;
-    return get3dAssetUrl(`animations/${String(charName).toLowerCase()}.glb`);
-  }, [selectedAsset]);
 
   interface ExpressionDef { name: string; shapes: Record<string, number> }
   const [expressionDefs, setExpressionDefs] = useState<ExpressionDef[]>([]);
@@ -204,15 +195,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
       .catch(() => {});
   }, [selectedAsset]);
 
-  useEffect(() => {
-    setAnimNames([]);
-    setActiveAnim(null);
-    const timeout = window.setTimeout(() => {
-      const names = modelRef.current?.getAnimationNames?.() ?? [];
-      if (names.length > 0) setAnimNames(names);
-    }, 500);
-    return () => window.clearTimeout(timeout);
-  }, [selectedAssetId, animationUrl]);
 
   interface MotionDef { id: string; description: string | null }
   const [motionDefs, setMotionDefs] = useState<MotionDef[]>([]);
@@ -271,7 +253,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
                   textureDir={textureDir}
                   textureFiles={selectedAsset?.textures}
                   textureMap={selectedAsset?.textureMap}
-                  animationUrl={animationUrl}
                 />
               ) : null}
             </ModelErrorBoundary>
@@ -454,32 +435,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
           </Stack>
         )}
 
-        {animNames.length > 0 && (
-          <Stack gap="2">
-            <Text fontWeight="semibold" fontSize="sm">Animation ({animNames.length})</Text>
-            <Stack gap="1" maxH="150px" overflowY="auto">
-              {animNames.map((name) => (
-                <Button
-                  key={name}
-                  size="xs"
-                  variant={activeAnim === name ? 'solid' : 'outline'}
-                  justifyContent="flex-start"
-                  onClick={() => {
-                    if (activeAnim === name) {
-                      modelRef.current?.stopAnimation();
-                      setActiveAnim(null);
-                    } else {
-                      modelRef.current?.playAnimation(name);
-                      setActiveAnim(name);
-                    }
-                  }}
-                >
-                  <Text fontSize="xs" truncate>{name}</Text>
-                </Button>
-              ))}
-            </Stack>
-          </Stack>
-        )}
 
         <Stack gap="2">
           <Text fontWeight="semibold" fontSize="sm">Camera</Text>

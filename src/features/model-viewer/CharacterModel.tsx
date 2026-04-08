@@ -21,7 +21,6 @@ interface CharacterModelProps {
   textureDir?: string;
   textureFiles?: string[];
   textureMap?: Record<string, Record<string, string>>;
-  animationUrl?: string;
   expression?: ExpressionData | null;
   expressionFrame?: number;
 }
@@ -33,8 +32,6 @@ export interface CharacterModelHandle {
   setMeshVisible: (name: string, visible: boolean) => void;
   getMeshVisible: (name: string) => boolean;
   getBounds: () => { center: THREE.Vector3; size: THREE.Vector3 } | null;
-  getAnimationNames: () => string[];
-  playAnimation: (name: string, loop?: boolean) => void;
   stopAnimation: () => void;
   loadMotionGlb: (url: string) => void;
   setPose: (pose: 'tpose' | 'apose' | 'soipo') => void;
@@ -74,7 +71,7 @@ function ModelErrorFallback() {
 }
 
 export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelProps>(
-  function CharacterModel({ url, extraUrls, textures: explicitTextures, textureDir, textureFiles, textureMap: assetTextureMap, animationUrl, expression, expressionFrame = 0 }, ref) {
+  function CharacterModel({ url, extraUrls, textures: explicitTextures, textureDir, textureFiles, textureMap: assetTextureMap, expression, expressionFrame = 0 }, ref) {
     const gltf = useLoader(GLTFLoader, url, undefined, (error) => {
       console.warn(`Failed to load model: ${url}`, error);
     });
@@ -354,54 +351,6 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       console.groupEnd();
     }, [gltf, explicitTextures, textureDir, assetTextureMap]);
 
-    useEffect(() => {
-      if (!animationUrl || !groupRef.current) return;
-      const loader = new GLTFLoader();
-      loader.load(animationUrl, (animGltf) => {
-        if (!groupRef.current) return;
-        const scene = groupRef.current.children[0];
-        if (!scene) return;
-        const mixer = new THREE.AnimationMixer(scene);
-        mixerRef.current = mixer;
-
-        // Retarget clips: strip the root node prefix from track names
-        // Animation tracks come as "RootName.property" or "RootName/Child.property"
-        // We need them relative to the costume's scene root
-        const retargeted = animGltf.animations.map(clip => {
-          const tracks = clip.tracks.map(track => {
-            let name = track.name;
-            // Strip "SomePrefabName(Clone)." or any root prefix before the first bone/mesh
-            const dotIdx = name.indexOf('.');
-            if (dotIdx > 0) {
-              const nodePath = name.substring(0, dotIdx);
-              const prop = name.substring(dotIdx);
-              // Remove root node name, keep child paths
-              const slashIdx = nodePath.indexOf('/');
-              if (slashIdx >= 0) {
-                name = nodePath.substring(slashIdx + 1) + prop;
-              }
-            }
-            return new THREE.KeyframeTrack(name, track.times, track.values as unknown as number[]);
-          });
-          return new THREE.AnimationClip(clip.name, clip.duration, tracks);
-        });
-
-        animClipsRef.current = retargeted;
-        console.group(`%c[ANIM] ${animationUrl.split('/').pop()}`, 'color: #81c784; font-weight: bold');
-        console.log(`Clips (${retargeted.length}):`, retargeted.map(c => `${c.name} (${c.duration.toFixed(1)}s, ${c.tracks.length} tracks)`));
-        if (retargeted.length > 0) {
-          console.log('Sample tracks:', retargeted[0].tracks.slice(0, 5).map(t => t.name));
-        }
-        console.groupEnd();
-      }, undefined, (err) => {
-        console.error('Failed to load animation GLB:', animationUrl, err);
-      });
-      return () => {
-        mixerRef.current?.stopAllAction();
-        mixerRef.current = null;
-        animClipsRef.current = [];
-      };
-    }, [animationUrl]);
 
     useEffect(() => {
       if (!controllerRef.current || !expression) return;
