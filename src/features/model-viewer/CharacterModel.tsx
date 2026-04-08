@@ -395,46 +395,39 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         mixerRef.current?.stopAllAction();
       },
       loadMotionGlb(url: string) {
-        const scene = groupRef.current?.children[0];
-        if (!scene) return;
-
-        // Find the costume's bone prefix (e.g. "KahLtA")
-        let targetPrefix = '';
-        scene.traverse((node) => {
-          if (node instanceof THREE.Bone && node.name.includes('_Hips')) {
-            targetPrefix = node.name.split('_Hips')[0];
-          }
-        });
-
+        const costumeScene = groupRef.current?.children[0];
+        if (!groupRef.current || !costumeScene) return;
         const loader = new GLTFLoader();
         loader.load(url, (motionGltf) => {
           if (!groupRef.current) return;
           mixerRef.current?.stopAllAction();
 
-          // Retarget: replace source prefix with target prefix in all track names
-          const clips = motionGltf.animations.map(clip => {
-            const tracks = clip.tracks.map(track => {
-              let name = track.name;
-              // Replace costume prefix: KahDeA_Hips.quaternion → KahLtA_Hips.quaternion
-              if (targetPrefix) {
-                const match = name.match(/^([A-Za-z]+)_/);
-                if (match && match[1] !== targetPrefix) {
-                  name = name.replace(match[1], targetPrefix);
-                }
-              }
-              return track.clone().name === name ? track : new (track.constructor as any)(name, track.times, track.values);
-            });
-            return new THREE.AnimationClip(clip.name, clip.duration, tracks);
-          });
+          // Debug: compare what the mixer will search vs what exists
+          const costumeRoot = groupRef.current.children[0];
+          console.log(`[MOTION] Costume root: "${costumeRoot?.name}", type=${costumeRoot?.type}`);
+          console.log(`[MOTION] Motion scene root: "${motionGltf.scene.name}"`);
 
-          const mixer = new THREE.AnimationMixer(scene);
+          // Log first few bones in costume
+          const costumeBones: string[] = [];
+          costumeRoot?.traverse(n => { if ((n as any).isBone) costumeBones.push(n.name); });
+          console.log(`[MOTION] Costume bones (${costumeBones.length}): ${costumeBones.slice(0,5).join(', ')}...`);
+
+          // Log first few track targets
+          if (motionGltf.animations.length > 0) {
+            const tracks = motionGltf.animations[0].tracks.slice(0, 5);
+            console.log(`[MOTION] Track names: ${tracks.map(t => t.name).join(', ')}`);
+          }
+
+          // Apply motion animations to the COSTUME scene
+          const mixer = new THREE.AnimationMixer(costumeRoot);
           mixerRef.current = mixer;
-          animClipsRef.current = clips;
-          console.log(`[MOTION] Loaded ${clips.length} clips (prefix: ${targetPrefix}):`,
-            clips.map(c => `${c.name}(${c.tracks.length}t)`));
+          animClipsRef.current = motionGltf.animations;
 
-          const loop = clips.find(c => c.name.endsWith('@l')) || clips[0];
-          if (loop) mixer.clipAction(loop).play();
+          const loop = motionGltf.animations.find(c => c.name.endsWith('@l')) || motionGltf.animations[0];
+          if (loop) {
+            console.log(`[MOTION] Playing: ${loop.name} (${loop.tracks.length} tracks, ${loop.duration.toFixed(1)}s)`);
+            mixer.clipAction(loop).play();
+          }
         }, undefined, (err) => console.error('[MOTION] Failed:', url, err));
       },
       setPose(pose: 'tpose' | 'apose' | 'soipo') {
