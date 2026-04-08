@@ -29,21 +29,6 @@ const CAMERA_MODE_LABELS: Record<CameraMode, string> = {
   turntable: 'Spin'
 };
 
-const EXPRESSION_PRESETS = [
-  { label: 'Neutral', shapes: [] },
-  { label: 'Smile', shapes: [['smile'], ['happy']] },
-  { label: 'Angry', shapes: [['angry'], ['brow_down']] },
-  { label: 'Sad', shapes: [['sad'], ['troubled']] },
-  { label: 'Surprised', shapes: [['surprised'], ['wide']] }
-];
-
-const MOUTH_PRESETS = [
-  { label: 'A', shapes: [['mouth_a'], ['a']] },
-  { label: 'I', shapes: [['mouth_i'], ['i']] },
-  { label: 'U', shapes: [['mouth_u'], ['u']] },
-  { label: 'E', shapes: [['mouth_e'], ['e']] },
-  { label: 'O', shapes: [['mouth_o'], ['o']] }
-];
 
 const CATEGORY_LABELS: Record<string, string> = {
   all: 'All',
@@ -60,7 +45,6 @@ interface ViewerUIProps {
   categories: string[];
 }
 
-const normalizeShape = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 function getDisplayName(asset: Asset3D): string {
   const meta = asset.metadata;
@@ -113,8 +97,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
   const [selectedAssetId, setSelectedAssetId] = useState(assets[0]?.id ?? '');
   const [bgMode, setBgMode] = useState<BgMode>('dark');
   const [showGrid, setShowGrid] = useState(true);
-  const [activeExpression, setActiveExpression] = useState('Neutral');
-  const [activeMouth, setActiveMouth] = useState('');
   const modelRef = useRef<CharacterModelHandle>(null);
 
   const filteredAssets = useMemo(() => {
@@ -157,24 +139,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
     return counts;
   }, [assets]);
 
-  const applyPreset = (groups: string[][]) => {
-    const controller = modelRef.current?.expressionController;
-    if (!controller) return;
-    const names = controller.getBlendShapeNames();
-    controller.reset();
-    for (const group of groups) {
-      const target = names.find((name) => {
-        const normalizedName = normalizeShape(name);
-        return group.some((part) => normalizedName.includes(normalizeShape(part)));
-      });
-      if (target) controller.setBlendShape(target, 100);
-    }
-  };
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => applyPreset([]), 100);
-    return () => window.clearTimeout(timeout);
-  }, [selectedAssetId]);
 
   const [meshToggles, setMeshToggles] = useState<Record<string, boolean>>({});
   const TOGGLEABLE = ['Loafer', 'IndoorShoes'];
@@ -267,7 +231,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
       .catch(() => {});
   }, [selectedAsset?.category]);
 
-  const hasBlendShapes = selectedAsset?.category === 'costume' || selectedAsset?.category === 'unknown';
   const defaultCameraMode = useCallback((): CameraMode => {
     if (selectedAsset?.category === 'stage') return 'fps';
     if (selectedAsset?.category === 'prop' || selectedAsset?.category === 'item') return 'turntable';
@@ -361,7 +324,9 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
             background: 'var(--colors-bg-subtle)',
             color: 'var(--colors-fg-default)',
             outline: 'none',
-            width: '100%'
+            width: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box' as const
           }}
         />
 
@@ -381,8 +346,8 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
               whiteSpace="nowrap"
               onClick={() => {
                 setSelectedAssetId(asset.id);
-                setActiveExpression('Neutral');
-                setActiveMouth('');
+                setActiveExpressionDef(null);
+                setActiveMotion(null);
                 if (window.innerWidth < 1024) setShowSidebar(false);
               }}
             >
@@ -391,61 +356,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
           ))}
         </Stack>
 
-        {/* Expression controls (only for character models) */}
-        {hasBlendShapes && (
-          <>
-            <Stack gap="2">
-              <Text fontWeight="semibold" fontSize="sm">Expression</Text>
-              <HStack gap="2" flexWrap="wrap">
-                {EXPRESSION_PRESETS.map((preset) => (
-                  <Button
-                    key={preset.label}
-                    size="xs"
-                    variant={activeExpression === preset.label ? 'solid' : 'outline'}
-                    onClick={() => {
-                      setActiveExpression(preset.label);
-                      setActiveMouth('');
-                      applyPreset(preset.shapes);
-                    }}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
-              </HStack>
-            </Stack>
-
-            <Stack gap="2">
-              <Text fontWeight="semibold" fontSize="sm">Mouth</Text>
-              <HStack gap="2" flexWrap="wrap">
-                {MOUTH_PRESETS.map((preset) => (
-                  <Button
-                    key={preset.label}
-                    size="xs"
-                    variant={activeMouth === preset.label ? 'solid' : 'outline'}
-                    onClick={() => {
-                      setActiveExpression('Neutral');
-                      setActiveMouth(preset.label);
-                      applyPreset(preset.shapes);
-                    }}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
-                <Button
-                  size="xs"
-                  variant={!activeMouth && activeExpression === 'Neutral' ? 'solid' : 'outline'}
-                  onClick={() => {
-                    setActiveExpression('Neutral');
-                    setActiveMouth('');
-                    applyPreset([]);
-                  }}
-                >
-                  Reset
-                </Button>
-              </HStack>
-            </Stack>
-          </>
-        )}
 
         {expressionDefs.length > 0 && (
           <Stack gap="2">
