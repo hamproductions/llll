@@ -40,6 +40,9 @@ export const getAssetUrl = (path: string) => {
 export const get3dAssetUrl = (assetPath: string) =>
   getAppDataUrl('3d', assetPath) ?? getAssetUrl(join('3d', assetPath));
 
+export const getSpineAssetUrl = (assetPath: string) =>
+  getAppDataUrl('spine', assetPath) ?? getAssetUrl(join('spine', assetPath));
+
 export const getPicUrl = (
   id: string,
   // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents

@@ -16,6 +16,7 @@ export interface TextureMap {
 
 interface CharacterModelProps {
   url: string;
+  extraUrls?: string[];
   textures?: TextureMap;
   textureDir?: string;
   textureFiles?: string[];
@@ -28,6 +29,10 @@ interface CharacterModelProps {
 export interface CharacterModelHandle {
   expressionController: ExpressionController | null;
   group: THREE.Group | null;
+  getMeshNames: () => string[];
+  setMeshVisible: (name: string, visible: boolean) => void;
+  getMeshVisible: (name: string) => boolean;
+  getBounds: () => { center: THREE.Vector3; size: THREE.Vector3 } | null;
 }
 
 function buildTextureMapFromAssetInfo(
@@ -36,7 +41,7 @@ function buildTextureMapFromAssetInfo(
 ): TextureMap {
   const map: TextureMap = {};
   for (const [meshName, props] of Object.entries(assetTextureMap)) {
-    const mainTex = props['_MainTex'] || props['_BaseMap'] || props['_Base_color'];
+    const mainTex = props['_MainTex'] || props['_MainTexture'] || props['_BaseMap'] || props['_Base_color'];
     const shadowTex = props['_1stShadowTex'];
     if (mainTex || shadowTex) {
       map[meshName] = {
@@ -58,7 +63,7 @@ function ModelErrorFallback() {
 }
 
 export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelProps>(
-  function CharacterModel({ url, textures: explicitTextures, textureDir, textureFiles, textureMap: assetTextureMap, noAutoScale, expression, expressionFrame = 0 }, ref) {
+  function CharacterModel({ url, extraUrls, textures: explicitTextures, textureDir, textureFiles, textureMap: assetTextureMap, noAutoScale, expression, expressionFrame = 0 }, ref) {
     const gltf = useLoader(GLTFLoader, url, undefined, (error) => {
       console.warn(`Failed to load model: ${url}`, error);
     });
@@ -73,6 +78,8 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       const tex = loader.load(path);
       tex.flipY = false;
       tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
       textureCache.current.set(path, tex);
       return tex;
     };
@@ -80,30 +87,38 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
     useEffect(() => {
       const scene = gltf.scene;
 
-      if (!noAutoScale) {
-        const box = new THREE.Box3().setFromObject(scene);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = maxDim > 0 ? 2.0 / maxDim : 1;
-        scene.scale.setScalar(scale);
-        scene.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
-      } else {
-        scene.scale.setScalar(1);
-        scene.position.set(0, 0, 0);
-      }
+      const applyScene = (root: THREE.Object3D) => {
+        if (!noAutoScale) {
+          const box = new THREE.Box3().setFromObject(root);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const scale = maxDim > 0 ? 2.0 / maxDim : 1;
+          root.scale.setScalar(scale);
+          root.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+        } else {
+          root.scale.setScalar(1);
+          root.position.set(0, 0, 0);
+        }
+      };
 
       const textures: TextureMap = explicitTextures
         ?? (textureDir && assetTextureMap && Object.keys(assetTextureMap).length > 0
           ? buildTextureMapFromAssetInfo(textureDir, assetTextureMap)
           : {});
 
-      // outlines disabled - don't work with 180° rotation fix
-      // const outlines: { parent: THREE.Object3D; mesh: THREE.Mesh }[] = [];
+      const HIDDEN_BY_DEFAULT = ['IndoorShoes'];
 
-      scene.traverse((child) => {
+      const highlightFile = textureFiles?.find(f => f.toLowerCase().includes('highlightmain'));
+      const highlightTex = highlightFile && textureDir ? loadTex(`${textureDir}${highlightFile}`) : null;
+      const eyeHiAddFile = textureFiles?.find(f => f.toLowerCase().includes('eyehiadd'));
+      const eyeHiAddTex = eyeHiAddFile && textureDir ? loadTex(`${textureDir}${eyeHiAddFile}`) : null;
+
+      const applyMaterials = (obj: THREE.Object3D) => {
+        obj.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;
         if (child.name.includes('_outline')) return;
+        if (HIDDEN_BY_DEFAULT.includes(child.name)) { child.visible = false; return; }
 
         const meshName = child.name;
         const dotStripped = meshName.replace(/\.\d{3}$/, '');
@@ -115,6 +130,21 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         const mainTex = loadTex(texConfig.mainTex);
         const shadowTex = loadTex(texConfig.shadowTex);
 
+        if (meshName === 'Eye') {
+          child.material = new THREE.MeshBasicMaterial({ map: mainTex, side: THREE.DoubleSide });
+          child.renderOrder = 1;
+          if (highlightTex) {
+            const hlMesh = child.clone();
+            hlMesh.material = new THREE.MeshBasicMaterial({
+              map: highlightTex, transparent: true, blending: THREE.AdditiveBlending,
+              depthWrite: false, side: THREE.DoubleSide,
+            });
+            hlMesh.renderOrder = 2;
+            child.parent?.add(hlMesh);
+          }
+          return;
+        }
+
         if (meshName === 'EyeShadow' || meshName.includes('EyeShadow')) {
           child.material = new THREE.MeshBasicMaterial({
             color: 0x000000, transparent: true, opacity: 0.15, depthWrite: false,
@@ -125,7 +155,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
         if (meshName === 'EyeLens' || meshName.includes('EyeLens')) {
           child.material = new THREE.MeshBasicMaterial({
-            map: mainTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+            map: mainTex, transparent: true, blending: THREE.AdditiveBlending, opacity: 0.5, depthWrite: false,
           });
           child.renderOrder = 10;
           return;
@@ -134,11 +164,17 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         if (mainTex && shadowTex) {
           child.material = createToonMaterial({ mainTex, shadowTex });
         } else if (mainTex) {
-          child.material = new THREE.MeshStandardMaterial({ map: mainTex });
+          child.material = new THREE.MeshStandardMaterial({
+            map: mainTex,
+            alphaTest: 0.01,
+          });
         }
 
-      });
+        });
+      };
 
+      applyMaterials(scene);
+      applyScene(scene);
       controllerRef.current = new ExpressionController(scene);
 
       if (groupRef.current) {
@@ -154,7 +190,25 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
     useImperativeHandle(ref, () => ({
       get expressionController() { return controllerRef.current; },
-      get group() { return groupRef.current; }
+      get group() { return groupRef.current; },
+      getMeshNames() {
+        const names: string[] = [];
+        gltf.scene.traverse((c) => { if (c instanceof THREE.Mesh) names.push(c.name); });
+        return names;
+      },
+      setMeshVisible(name: string, visible: boolean) {
+        gltf.scene.traverse((c) => { if (c instanceof THREE.Mesh && c.name === name) c.visible = visible; });
+      },
+      getMeshVisible(name: string) {
+        let vis = true;
+        gltf.scene.traverse((c) => { if (c instanceof THREE.Mesh && c.name === name) vis = c.visible; });
+        return vis;
+      },
+      getBounds() {
+        if (!groupRef.current?.children.length) return null;
+        const box = new THREE.Box3().setFromObject(groupRef.current);
+        return { center: box.getCenter(new THREE.Vector3()), size: box.getSize(new THREE.Vector3()) };
+      },
     }));
 
     useFrame((_, delta) => {

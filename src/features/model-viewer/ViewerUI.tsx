@@ -1,4 +1,5 @@
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, Suspense, useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from 'react';
+import * as THREE from 'three';
 import { Box, HStack, Stack } from 'styled-system/jsx';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
@@ -20,6 +21,13 @@ class ModelErrorBoundary extends Component<{ children: ReactNode; resetKey?: str
 }
 
 type BgMode = 'dark' | 'light' | 'transparent';
+type CameraMode = 'orbit' | 'fps' | 'turntable';
+
+const CAMERA_MODE_LABELS: Record<CameraMode, string> = {
+  orbit: 'Orbit',
+  fps: 'WASD',
+  turntable: 'Spin'
+};
 
 const EXPRESSION_PRESETS = [
   { label: 'Neutral', shapes: [] },
@@ -43,6 +51,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   stage: 'Stage',
   prop: 'Prop',
   item: 'Item',
+  ppadv: 'Story Prop',
   unknown: 'Other'
 };
 
@@ -168,17 +177,63 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
     return () => window.clearTimeout(timeout);
   }, [selectedAssetId]);
 
+  const [meshToggles, setMeshToggles] = useState<Record<string, boolean>>({});
+  const TOGGLEABLE = ['Loafer', 'IndoorShoes'];
+  const DEFAULT_HIDDEN = ['IndoorShoes'];
+
+  useEffect(() => {
+    const handle = modelRef.current;
+    if (!handle) return;
+    const timeout = window.setTimeout(() => {
+      const names = handle.getMeshNames?.() ?? [];
+      const toggleable = names.filter(n => TOGGLEABLE.includes(n));
+      if (toggleable.length > 0) {
+        const state: Record<string, boolean> = {};
+        for (const n of toggleable) {
+          state[n] = !DEFAULT_HIDDEN.includes(n);
+          handle.setMeshVisible(n, state[n]);
+        }
+        setMeshToggles(state);
+      } else {
+        setMeshToggles({});
+      }
+    }, 200);
+    return () => window.clearTimeout(timeout);
+  }, [selectedAssetId]);
+
+  const [fitTarget, setFitTarget] = useState<{ center: THREE.Vector3; size: THREE.Vector3 } | null>(null);
+
+  useEffect(() => {
+    setFitTarget(null);
+    const timeout = window.setTimeout(() => {
+      const bounds = modelRef.current?.getBounds?.();
+      if (bounds) setFitTarget(bounds);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [selectedAssetId]);
+
   const hasBlendShapes = selectedAsset?.category === 'costume' || selectedAsset?.category === 'unknown';
-  const cameraMode = (() => {
-    if (selectedAsset?.category === 'stage') return 'fps' as const;
-    if (selectedAsset?.category === 'prop' || selectedAsset?.category === 'item') return 'turntable' as const;
-    return 'orbit' as const;
-  })();
+  const defaultCameraMode = useCallback((): CameraMode => {
+    if (selectedAsset?.category === 'stage') return 'fps';
+    if (selectedAsset?.category === 'prop' || selectedAsset?.category === 'item') return 'turntable';
+    return 'orbit';
+  }, [selectedAsset?.category]);
+  const [cameraMode, setCameraMode] = useState<CameraMode>(defaultCameraMode());
+  const [showSidebar, setShowSidebar] = useState(true);
+
+  useEffect(() => {
+    setCameraMode(defaultCameraMode());
+  }, [selectedAsset?.category, defaultCameraMode]);
 
   return (
-    <HStack w="full" h="calc(100vh - 64px)" gap="0" alignItems="stretch" flexDirection={{ base: 'column', lg: 'row' }}>
-      <Box flex="1" position="relative" minH={{ base: '60vh', lg: '400px' }}>
-        <Viewport bgMode={bgMode} showGrid={showGrid} cameraMode={cameraMode} resetKey={selectedAssetId}>
+    <HStack w="full" h={{ base: 'auto', lg: 'calc(100vh - 64px)' }} minH={{ lg: 'calc(100vh - 64px)' }} gap="0" alignItems="stretch" flexDirection={{ base: 'column', lg: 'row' }}>
+      <Box flex={{ base: 'none', lg: '1' }} position="relative" h={{ base: showSidebar ? '35vh' : '70vh', lg: 'auto' }}>
+        <Box position="absolute" top="3" left="3" zIndex="10" display={{ base: 'block', lg: 'none' }}>
+          <Button size="xs" variant="solid" onClick={() => setShowSidebar(!showSidebar)}>
+            {showSidebar ? 'Expand' : 'Panel'}
+          </Button>
+        </Box>
+        <Viewport bgMode={bgMode} showGrid={showGrid} cameraMode={cameraMode} resetKey={selectedAssetId} fitTarget={selectedAsset?.category !== 'stage' ? fitTarget : null}>
           <Suspense fallback={null}>
             {/* TODO: environment room disabled until scale matching is resolved
             {selectedAsset?.category !== 'stage' && (
@@ -192,6 +247,9 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
                 <CharacterModel
                   ref={modelRef}
                   url={modelUrl}
+                  extraUrls={selectedAsset?.extraGlbs?.map(g =>
+                    selectedAsset.category === 'unknown' ? `/3d/${g}` : get3dAssetUrl(g)
+                  )}
                   textureDir={textureDir}
                   textureFiles={selectedAsset?.textures}
                   textureMap={selectedAsset?.textureMap}
@@ -212,6 +270,9 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
         borderColor="border.default"
         overflowY="auto"
         bg="bg.default"
+        display={{ base: showSidebar ? 'flex' : 'none', lg: 'flex' }}
+        flex={{ base: '1', lg: 'none' }}
+        maxH={{ base: showSidebar ? 'calc(65vh - 64px)' : '0', lg: 'none' }}
       >
         <Text fontWeight="bold" fontSize="lg">
           {selectedAsset ? getDisplayName(selectedAsset) : 'No model'}
@@ -267,6 +328,7 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
                 setSelectedAssetId(asset.id);
                 setActiveExpression('Neutral');
                 setActiveMouth('');
+                if (window.innerWidth < 1024) setShowSidebar(false);
               }}
             >
               <Text fontSize="xs" truncate>{getDisplayName(asset)}</Text>
@@ -330,11 +392,48 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
           </>
         )}
 
-        {cameraMode === 'fps' && (
-          <Text fontSize="xs" color="fg.muted">
-            Click to look around. WASD to move. Space/Q for up/down. Shift to sprint.
-          </Text>
+        {Object.keys(meshToggles).length > 0 && (
+          <Stack gap="2">
+            <Text fontWeight="semibold" fontSize="sm">Parts</Text>
+            <HStack gap="2" flexWrap="wrap">
+              {Object.entries(meshToggles).map(([name, visible]) => (
+                <Button
+                  key={name}
+                  size="xs"
+                  variant={visible ? 'solid' : 'outline'}
+                  onClick={() => {
+                    const next = !visible;
+                    modelRef.current?.setMeshVisible(name, next);
+                    setMeshToggles(prev => ({ ...prev, [name]: next }));
+                  }}
+                >
+                  {name}
+                </Button>
+              ))}
+            </HStack>
+          </Stack>
         )}
+
+        <Stack gap="2">
+          <Text fontWeight="semibold" fontSize="sm">Camera</Text>
+          <HStack gap="2" flexWrap="wrap">
+            {(['orbit', 'turntable', 'fps'] as CameraMode[]).map((mode) => (
+              <Button
+                key={mode}
+                size="xs"
+                variant={cameraMode === mode ? 'solid' : 'outline'}
+                onClick={() => setCameraMode(mode)}
+              >
+                {CAMERA_MODE_LABELS[mode]}
+              </Button>
+            ))}
+          </HStack>
+          {cameraMode === 'fps' && (
+            <Text fontSize="xs" color="fg.muted">
+              Click to look. WASD move. Space/Q up/down. Shift sprint.
+            </Text>
+          )}
+        </Stack>
 
         <Stack gap="2">
           <Text fontWeight="semibold" fontSize="sm">Background</Text>

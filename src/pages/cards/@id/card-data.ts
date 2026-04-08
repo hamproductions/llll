@@ -75,6 +75,12 @@ export type StyleMovie = InferSelectModel<typeof schema.styleMovies>;
 export type StyleVoice = InferSelectModel<typeof schema.styleVoices>;
 export type LimitBreakMaterialRate = InferSelectModel<typeof schema.limitBreakMaterialRate>;
 
+export type CrossVoice = {
+  partnerMemberId: number;
+  partnerName: string;
+  voiceFileName: string;
+};
+
 export type SchoolIdolShowSkills = {
   card_id: number;
   skill_type: 'center_skill' | 'rhythm_game_skill' | 'center_attribute';
@@ -502,7 +508,7 @@ function pruneSkillData(skillInfo: SkillSeriesDetails | undefined): SkillSeriesD
 
 // Cache configuration
 const CACHE_DIR = path.join(process.cwd(), '.cache', 'card-data');
-const CACHE_VERSION = 'v1'; // Bump this to invalidate all caches
+const CACHE_VERSION = 'v2'; // Bump this to invalidate all caches
 
 // Ensure cache directory exists
 function ensureCacheDir() {
@@ -691,6 +697,55 @@ export async function getCardPageData(
     where: eq(schema.styleVoices.cardSeriesId, cardSeriesId)
   });
 
+  const duetVoiceRows = await db
+    .select({
+      partnerMemberIds: schema.cardduetvoiceTsv.f5Dc95Cf8
+    })
+    .from(schema.cardduetvoiceTsv)
+    .where(eq(schema.cardduetvoiceTsv.fc59Ddc03, cardSeriesId));
+
+  const crossVoices: CrossVoice[] = [];
+  if (duetVoiceRows.length > 0) {
+    const partnerIds = duetVoiceRows
+      .flatMap((r) => (r.partnerMemberIds ?? '').split(','))
+      .map((id) => parseInt(id, 10))
+      .filter((id) => !isNaN(id));
+
+    const uniquePartnerIds = [...new Set(partnerIds)];
+    const partnerChars =
+      uniquePartnerIds.length > 0
+        ? await db
+            .select({
+              id: schema.characters.id,
+              nameFirst: schema.characters.nameFirst,
+              nameLast: schema.characters.nameLast
+            })
+            .from(schema.characters)
+            .where(inArray(schema.characters.id, uniquePartnerIds))
+        : [];
+
+    const charMap = new Map(partnerChars.map((c) => [c.id, c]));
+
+    for (const row of duetVoiceRows) {
+      const ids = (row.partnerMemberIds ?? '')
+        .split(',')
+        .map((id) => parseInt(id, 10))
+        .filter((id) => !isNaN(id));
+
+      ids.forEach((partnerId, idx) => {
+        const char = charMap.get(partnerId);
+        const partnerName = char
+          ? [char.nameLast, char.nameFirst].filter(Boolean).join(' ')
+          : String(partnerId);
+        crossVoices.push({
+          partnerMemberId: partnerId,
+          partnerName,
+          voiceFileName: `vo_card_${cardSeriesId}_spduet_${String(idx + 1).padStart(2, '0')}01`
+        });
+      });
+    }
+  }
+
   const limitBreakMaterialRates = await db.query.limitBreakMaterialRate.findMany({
     where: eq(schema.limitBreakMaterialRate.cardSeriesId, cardSeriesId)
   });
@@ -702,6 +757,7 @@ export async function getCardPageData(
     limitBreakMaterials: limitBreakMaterialsRaw,
     styleMovies: styleMoviesData,
     styleVoices: styleVoicesData,
+    crossVoices,
     limitBreakMaterialRates
   } as const;
 

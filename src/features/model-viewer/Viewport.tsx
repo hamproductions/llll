@@ -12,6 +12,7 @@ interface ViewportProps {
   cameraMode?: CameraMode;
   resetKey?: string;
   children?: React.ReactNode;
+  fitTarget?: { center: THREE.Vector3; size: THREE.Vector3 } | null;
 }
 
 const bgColors: Record<BgMode, string> = {
@@ -20,18 +21,28 @@ const bgColors: Record<BgMode, string> = {
   transparent: 'transparent'
 };
 
-function CameraReset({ resetKey, cameraMode }: { resetKey?: string; cameraMode: CameraMode }) {
+function CameraReset({ resetKey, cameraMode, fitTarget }: { resetKey?: string; cameraMode: CameraMode; fitTarget?: { center: THREE.Vector3; size: THREE.Vector3 } | null }) {
   const { camera } = useThree();
 
   useEffect(() => {
     if (cameraMode === 'fps') {
       camera.position.set(0, 2, -5);
       camera.lookAt(0, 1, 0);
+      return;
+    }
+
+    if (fitTarget) {
+      const { center, size } = fitTarget;
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 180);
+      const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.4;
+      camera.position.set(center.x, center.y, center.z + dist);
+      camera.lookAt(center.x, center.y, center.z);
     } else {
-      camera.position.set(0, 1.2, -3);
+      camera.position.set(0, 1.2, 3.5);
       camera.lookAt(0, 1, 0);
     }
-  }, [resetKey, cameraMode]);
+  }, [resetKey, cameraMode, fitTarget]);
 
   return null;
 }
@@ -43,7 +54,10 @@ function FPSControls() {
   const locked = useRef(false);
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => { keys.current[e.code] = true; };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ'].includes(e.code)) e.preventDefault();
+      keys.current[e.code] = true;
+    };
     const onKeyUp = (e: KeyboardEvent) => { keys.current[e.code] = false; };
 
     const onMouseDown = (e: MouseEvent) => {
@@ -98,6 +112,8 @@ function FPSControls() {
       move.normalize().multiplyScalar(speed * delta);
       move.applyQuaternion(camera.quaternion);
       camera.position.add(move);
+      const B = 50;
+      camera.position.clamp(new THREE.Vector3(-B, 0.1, -B), new THREE.Vector3(B, B, B));
     }
   });
 
@@ -120,13 +136,13 @@ function SceneBackground({ bgMode }: { bgMode: BgMode }) {
   return null;
 }
 
-export function Viewport({ bgMode = 'dark', showGrid = true, cameraMode = 'orbit', resetKey, children }: ViewportProps) {
+export function Viewport({ bgMode = 'dark', showGrid = true, cameraMode = 'orbit', resetKey, fitTarget, children }: ViewportProps) {
   const isFps = cameraMode === 'fps';
 
   return (
     <Canvas
       camera={{
-        position: isFps ? [0, 2, 5] : [0, 1.2, -3],
+        position: isFps ? [0, 2, 5] : [0, 1.2, 3],
         fov: isFps ? 70 : 35,
         near: 0.01,
         far: 1000
@@ -135,15 +151,15 @@ export function Viewport({ bgMode = 'dark', showGrid = true, cameraMode = 'orbit
       gl={{ alpha: true, antialias: true }}
     >
       <SceneBackground bgMode={bgMode} />
-      <ambientLight intensity={0.8} />
-      <hemisphereLight args={['#ffffff', '#444466', 0.6]} />
-      <directionalLight position={[5, 8, 3]} intensity={1.5} />
-      <directionalLight position={[-3, 4, -2]} intensity={0.5} />
+      <ambientLight intensity={0.3} />
+      <hemisphereLight args={['#ffffff', '#444466', 0.3]} />
+      <directionalLight position={[5, 8, 3]} intensity={0.8} />
+      <directionalLight position={[-3, 4, -2]} intensity={0.3} />
       {isFps && <pointLight position={[0, 3, 0]} intensity={1} distance={30} />}
-      <CameraReset resetKey={resetKey} cameraMode={cameraMode} />
+      <CameraReset resetKey={resetKey} cameraMode={cameraMode} fitTarget={fitTarget} />
       {cameraMode === 'orbit' || cameraMode === 'turntable' ? (
         <OrbitControls
-          target={[0, 1, 0]}
+          target={fitTarget ? [fitTarget.center.x, fitTarget.center.y, fitTarget.center.z] : [0, 1, 0]}
           minDistance={0.3}
           maxDistance={50}
           enablePan

@@ -3,6 +3,7 @@
 export { data };
 export type {
   CardDataListItem,
+  CrossVoice,
   LimitBreakMaterial,
   LimitBreakMaterialRate,
   SkillLevelUpMaterial,
@@ -62,6 +63,7 @@ async function data(pageContext: PageContext) {
       limitBreakMaterials: [],
       styleMovies: [],
       styleVoices: [],
+      crossVoices: [],
       limitBreakMaterialRates: []
     };
   }
@@ -77,6 +79,7 @@ async function data(pageContext: PageContext) {
       limitBreakMaterials: [],
       styleMovies: [],
       styleVoices: [],
+      crossVoices: [],
       limitBreakMaterialRates: [],
       rarityMap: {},
       character: null

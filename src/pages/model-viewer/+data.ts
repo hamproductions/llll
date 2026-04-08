@@ -11,6 +11,7 @@ interface Asset3D {
   category: string;
   label: string;
   glbPath: string;
+  extraGlbs?: string[];
   textureDir: string;
   textures: string[];
   textureMap: Record<string, Record<string, string>>;

@@ -7,7 +7,7 @@
   "back_to_list": "Back to List",
   "save_image": "Save Image",
   "open_image_new_tab": "Open in New Tab",
-  "navigation": { "home": "Home", "cards": "Cards", "stories": "Stories", "songs": "Songs", "characters": "Characters", "gacha": "Gacha", "stickers": "Stickers", "downloads": "Loading Screens", "bgm": "BGM", "grand_prix": "Grand Prix", "items": "Items", "emoji": "Emoji", "gallery": "Gallery", "viewer": "Viewer", "spine_viewer": "Spine Viewer", "menu": "Menu" },
+  "navigation": { "home": "Home", "cards": "Cards", "stories": "Stories", "songs": "Songs", "characters": "Characters", "gacha": "Gacha", "stickers": "Stickers", "downloads": "Loading Screens", "bgm": "BGM", "grand_prix": "Grand Prix", "items": "Items", "emoji": "Emoji", "gallery": "Gallery", "viewer": "3D Viewer", "spine_viewer": "Spine Viewer", "menu": "Menu" },
   "fever_length": "Fever",
   "seconds": "seconds",
   "song_table": {
@@ -56,6 +56,7 @@
   "style_movies": "Style Movies",
   "style_movies_location": "Location",
   "style_voices": "Style Voices",
+  "cross_voices": "Cross Voices",
   "home_video_unawakened_title": "Home Video (Unawakened)",
   "home_video_unawakened_description": "Always available",
   "home_video_awakened_title": "Home Video (Awakened)",
@@ -120,7 +121,7 @@
     "explore_items": "Items",
     "explore_emoji": "Emoji",
     "explore_gallery": "Gallery",
-    "explore_viewer": "Viewer",
+    "explore_viewer": "3D Viewer",
     "explore_spine": "Spine Viewer",
     "photo_gallery": "Photo Gallery",
     "rhythm_game_charts": "Rhythm Game Charts"
@@ -182,7 +183,7 @@
   "spine_viewer": {
     "title": "Spine Viewer",
     "coming_soon": "Spine animation viewer is coming soon. Check back later!",
-    "try_3d_viewer": "Try the 3D Model Viewer"
+    "try_3d_viewer": "Try the 3D Viewer"
   },
   "character_list_header": "Characters",
   "filter_characters": "Search characters...",

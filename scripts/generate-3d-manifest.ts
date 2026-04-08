@@ -11,6 +11,7 @@ interface Asset3D {
   category: string;
   label: string;
   glbPath: string;
+  extraGlbs?: string[];
   textureDir: string;
   textures: string[];
   textureMap: Record<string, Record<string, string>>;
@@ -33,7 +34,7 @@ interface StageRow {
   description: string | null;
 }
 
-const CATEGORIES = ['costume', 'stage', 'prop', 'item'] as const;
+const CATEGORIES = ['costume', 'stage', 'prop', 'item', 'ppadv'] as const;
 
 async function scanCategory(category: string): Promise<Asset3D[]> {
   const catDir = path.join(DATA_3D_DIR, category);
@@ -55,7 +56,10 @@ async function scanCategory(category: string): Promise<Asset3D[]> {
     const glbs = files.filter((f) => f.endsWith('.glb'));
     if (glbs.length === 0) continue;
     let glb = glbs[0];
-    if (glbs.length > 1) {
+    const labelGlb = glbs.find((g) => g === `${entry}.glb`);
+    if (labelGlb) {
+      glb = labelGlb;
+    } else if (glbs.length > 1) {
       let maxSize = 0;
       for (const g of glbs) {
         const s = (await fs.stat(path.join(assetDir, g))).size;
@@ -65,6 +69,7 @@ async function scanCategory(category: string): Promise<Asset3D[]> {
 
     const textures = files.filter((f) => f.endsWith('.png'));
     const glbPath = `${category}/${entry}/${glb}`;
+    const extraGlbs = glbs.filter(g => g !== glb).map(g => `${category}/${entry}/${g}`);
     const textureDir = `${category}/${entry}/`;
 
     let textureMap: Record<string, Record<string, string>> = {};
@@ -79,6 +84,7 @@ async function scanCategory(category: string): Promise<Asset3D[]> {
       category,
       label: entry,
       glbPath,
+      extraGlbs: extraGlbs.length > 0 ? extraGlbs : undefined,
       textureDir,
       textures,
       textureMap,
@@ -118,6 +124,19 @@ function enrichCostumes(assets: Asset3D[], db: Database) {
   }
 }
 
+function enrichPpadv(assets: Asset3D[]) {
+  for (const asset of assets) {
+    const match = asset.label.match(/^ppadv(\d+)_(.+)$/);
+    if (match) {
+      const name = match[2]
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+      asset.metadata.assetName = name;
+      asset.metadata.ppadvId = parseInt(match[1], 10);
+    }
+  }
+}
+
 function enrichFromDeps(assets: Asset3D[], db: Database, prefix: string) {
   for (const asset of assets) {
     const deps = db
@@ -152,6 +171,9 @@ async function main() {
     if (category === 'costume') enrichCostumes(assets, db);
     if (category === 'stage' || category === 'prop' || category === 'item') {
       enrichFromDeps(assets, db, category);
+    }
+    if (category === 'ppadv') {
+      enrichPpadv(assets);
     }
     allAssets.push(...assets);
     console.log(`${category}: ${assets.length} assets`);

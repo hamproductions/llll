@@ -1,7 +1,14 @@
 import type { TFunction } from 'i18next';
-import type { LimitBreakMaterial, StyleMovie, StyleVoice, LimitBreakMaterialRate } from '../+data';
+import type {
+  CrossVoice,
+  LimitBreakMaterial,
+  StyleMovie,
+  StyleVoice,
+  LimitBreakMaterialRate
+} from '../+data';
 import { StyleMoviesDisplay } from './StyleMoviesDisplay';
 import { StyleVoicesDisplay } from './StyleVoicesDisplay';
+import { CrossVoicesDisplay } from './CrossVoicesDisplay';
 import { LimitBreakMaterialRatesTable } from './LimitBreakMaterialRatesTable';
 
 interface AdditionalInfoSectionProps {
@@ -9,12 +16,13 @@ interface AdditionalInfoSectionProps {
   limitBreakMaterials?: LimitBreakMaterial[];
   styleMovies?: StyleMovie[];
   styleVoices?: StyleVoice[];
+  crossVoices?: CrossVoice[];
   limitBreakMaterialRates?: LimitBreakMaterialRate[];
   t: TFunction;
 }
 
 export function AdditionalInfoSection(props: AdditionalInfoSectionProps) {
-  const { cardId, styleMovies, styleVoices, limitBreakMaterialRates, t } = props;
+  const { cardId, styleMovies, styleVoices, crossVoices, limitBreakMaterialRates, t } = props;
 
   return (
     <>
@@ -24,6 +32,10 @@ export function AdditionalInfoSection(props: AdditionalInfoSectionProps) {
 
       {(styleVoices?.length ?? 0) > 0 && (
         <StyleVoicesDisplay cardId={cardId} voices={styleVoices!} title={t('style_voices')} />
+      )}
+
+      {(crossVoices?.length ?? 0) > 0 && (
+        <CrossVoicesDisplay cardId={cardId} voices={crossVoices!} title={t('cross_voices')} />
       )}
 
       {(limitBreakMaterialRates?.length ?? 0) > 0 && (

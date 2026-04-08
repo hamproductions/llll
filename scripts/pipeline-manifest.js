@@ -273,7 +273,8 @@ export const uploadTargets = [
   { local: '../data/assets/photo_10512/final', gcs: 'photo_10512' },
   { local: '../data/music/mp3', gcs: 'music/mp3' },
   { local: '../data/music/out', gcs: 'music/wav' },
-  { local: 'data/3d', gcs: '3d' }
+  { local: 'data/3d', gcs: '3d' },
+  { local: 'data/spine', gcs: 'spine' }
 ];
 
 export const auditTargets = [

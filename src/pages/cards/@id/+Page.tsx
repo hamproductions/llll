@@ -22,6 +22,7 @@ export function Page() {
     skillLevelUpMaterials,
     styleMovies,
     styleVoices,
+    crossVoices,
     limitBreakMaterials,
     limitBreakMaterialRates,
     character,
@@ -148,6 +149,7 @@ export function Page() {
               limitBreakMaterials={limitBreakMaterials}
               styleMovies={styleMovies}
               styleVoices={styleVoices}
+              crossVoices={crossVoices}
               limitBreakMaterialRates={limitBreakMaterialRates}
               t={t}
             />

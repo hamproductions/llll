@@ -7,7 +7,7 @@
   "back_to_list": "一覧へ戻る",
   "save_image": "画像を保存",
   "open_image_new_tab": "新しいタブで開く",
-  "navigation": { "home": "ホーム", "cards": "カード", "stories": "ストーリー", "songs": "楽曲", "characters": "キャラクター", "gacha": "ガチャ", "stickers": "スタンプ", "downloads": "ローディング画面", "bgm": "BGM", "grand_prix": "グランプリ", "items": "アイテム", "emoji": "絵文字", "gallery": "ギャラリー", "viewer": "ビューアー", "spine_viewer": "Spineビューアー", "menu": "メニュー" },
+  "navigation": { "home": "ホーム", "cards": "カード", "stories": "ストーリー", "songs": "楽曲", "characters": "キャラクター", "gacha": "ガチャ", "stickers": "スタンプ", "downloads": "ローディング画面", "bgm": "BGM", "grand_prix": "グランプリ", "items": "アイテム", "emoji": "絵文字", "gallery": "ギャラリー", "viewer": "3Dビューアー", "spine_viewer": "Spineビューアー", "menu": "メニュー" },
   "fever_length": "フィーバー",
   "seconds": "秒",
   "song_table": {
@@ -56,6 +56,7 @@
   "style_movies": "スタイルムービー",
   "style_movies_location": "場所",
   "style_voices": "スタイルボイス",
+  "cross_voices": "クロスボイス",
   "home_video_unawakened_title": "ホームビデオ（未覚醒）",
   "home_video_unawakened_description": "常に利用可能",
   "home_video_awakened_title": "ホームビデオ（覚醒）",
@@ -124,7 +125,7 @@
     "explore_items": "アイテム",
     "explore_emoji": "絵文字",
     "explore_gallery": "ギャラリー",
-    "explore_viewer": "ビューアー",
+    "explore_viewer": "3Dビューアー",
     "explore_spine": "Spineビューアー",
     "photo_gallery": "フォトギャラリー",
     "rhythm_game_charts": "リズムゲーム譜面"
@@ -186,7 +187,7 @@
   "spine_viewer": {
     "title": "Spineビューアー",
     "coming_soon": "Spineアニメーションビューアーは近日公開予定です。",
-    "try_3d_viewer": "3Dモデルビューアーを試す"
+    "try_3d_viewer": "3Dビューアーを試す"
   },
   "character_list_header": "キャラクター",
   "filter_characters": "キャラクターを検索...",

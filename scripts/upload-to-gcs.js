@@ -87,7 +87,9 @@ function getContentType(filePath) {
     svg: 'image/svg+xml',
     json: 'application/json',
     glb: 'model/gltf-binary',
-    gltf: 'model/gltf+json'
+    gltf: 'model/gltf+json',
+    skel: 'application/octet-stream',
+    atlas: 'text/plain'
   };
   return contentTypes[ext] || 'application/octet-stream';
 }
