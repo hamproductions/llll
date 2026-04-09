@@ -435,52 +435,112 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           if (!groupRef.current) return;
           mixerRef.current?.stopAllAction();
 
-          // Build suffix→costumeBoneName map for retargeting
-          // Prefer longer bone names (body bones like RurUsA_Head over face bones like Rur_Head)
-          const costumeBoneMap = new Map<string, string>();
-          costumeRoot.traverse(n => {
-            if ((n as any).isBone) {
-              const underscoreIdx = n.name.indexOf('_');
-              if (underscoreIdx > 0) {
-                const suffix = n.name.substring(underscoreIdx);
-                const existing = costumeBoneMap.get(suffix);
-                if (!existing || n.name.length > existing.length)
-                  costumeBoneMap.set(suffix, n.name);
-              }
-              costumeBoneMap.set(n.name, n.name);
+          // Detect body prefix from motion (_Hips is unique)
+          let motionBodyPrefix = '';
+          let motionFacePrefix = '';
+          motionGltf.scene.traverse((n: any) => {
+            if (n.isBone && n.name.endsWith('_Hips') && !motionBodyPrefix) {
+              motionBodyPrefix = n.name.slice(0, n.name.indexOf('_Hips'));
             }
           });
 
-          // Retarget animation tracks to match costume bone names
+          // Detect body + face prefix from costume
+          let costumeBodyPrefix = '';
+          let costumeFacePrefix = '';
+          const costumeBonesSet = new Set<string>();
+          costumeRoot.traverse((n: any) => {
+            if (n.isBone) {
+              costumeBonesSet.add(n.name);
+              if (n.name.endsWith('_Hips') && !costumeBodyPrefix)
+                costumeBodyPrefix = n.name.slice(0, n.name.indexOf('_Hips'));
+            }
+          });
+
+          // Derive face prefixes: body prefix up to first uppercase after char 0
+          // KahDeA → Kah, KozDeA → Koz, RurUsA → Rur
+          const deriveFacePrefix = (bodyPfx: string) => {
+            for (let i = 1; i < bodyPfx.length; i++) {
+              if (bodyPfx[i] >= 'A' && bodyPfx[i] <= 'Z') return bodyPfx.slice(0, i);
+            }
+            return bodyPfx;
+          };
+          motionFacePrefix = deriveFacePrefix(motionBodyPrefix);
+          costumeFacePrefix = deriveFacePrefix(costumeBodyPrefix);
+
+          console.log(`[MOTION] Prefix: motion=${motionBodyPrefix}/${motionFacePrefix} → costume=${costumeBodyPrefix}/${costumeFacePrefix}`)
+          console.log(`[MOTION] Costume has face bones:`, Array.from(costumeBonesSet).filter(b => b.startsWith(costumeFacePrefix + '_')));
+
+          // Retarget by prefix replacement
+          const dropped = new Set<string>();
+          const mapped = new Set<string>();
           const clips = motionGltf.animations.map(clip => {
             const tracks: THREE.KeyframeTrack[] = [];
             for (const track of clip.tracks) {
               const [nodeName, ...propParts] = track.name.split('.');
               const prop = '.' + propParts.join('.');
 
-              if (costumeBoneMap.has(nodeName)) {
-                tracks.push(track);
-                continue;
-              }
-
-              const underscoreIdx = nodeName.indexOf('_');
-              if (underscoreIdx > 0) {
-                const suffix = nodeName.substring(underscoreIdx);
-                const mapped = costumeBoneMap.get(suffix);
-                if (mapped) {
-                  tracks.push(new (track.constructor as any)(`${mapped}${prop}`, track.times, track.values));
-                  continue;
+              let targetName = '';
+              if (nodeName.startsWith(motionBodyPrefix + '_')) {
+                targetName = costumeBodyPrefix + nodeName.substring(motionBodyPrefix.length);
+              } else if (nodeName.startsWith(motionFacePrefix + '_')) {
+                // Same costume: animate face bones directly
+                // Cross-costume: skip face bones — hierarchy under Head handles it
+                if (motionBodyPrefix === costumeBodyPrefix) {
+                  targetName = costumeFacePrefix + nodeName.substring(motionFacePrefix.length);
                 }
               }
-              // Drop unmapped tracks — bone doesn't exist in costume skeleton
+
+              if (targetName && costumeBonesSet.has(targetName)) {
+                tracks.push(new (track.constructor as any)(`${targetName}${prop}`, track.times, track.values));
+                if (prop === '.quaternion') mapped.add(`${nodeName} → ${targetName}`);
+              } else if (costumeBonesSet.has(nodeName)) {
+                tracks.push(track);
+                if (prop === '.quaternion') mapped.add(`${nodeName} (exact)`);
+              } else {
+                dropped.add(nodeName);
+              }
             }
             return new THREE.AnimationClip(clip.name, clip.duration, tracks);
           });
+          const faceMapped = Array.from(mapped).filter(m => m.includes(costumeFacePrefix + '_'));
+          console.log(`[MOTION] Mapped total: ${mapped.size}, FACE mapped (${faceMapped.length}):`, faceMapped);
+          if (dropped.size > 0) console.warn(`[MOTION] Dropped (${dropped.size}):`, Array.from(dropped));
 
           const mixer = new THREE.AnimationMixer(costumeRoot);
           mixerRef.current = mixer;
           animClipsRef.current = clips;
 
+
+          // Debug: dump face hierarchy at runtime
+          let faceNode: any = null;
+          costumeRoot.traverse((c: any) => { if (!faceNode && c.name?.startsWith('3d_face')) faceNode = c; });
+          if (faceNode) {
+            const chain: string[] = [];
+            let cur = faceNode;
+            while (cur) { chain.push(cur.name || '(unnamed)'); cur = cur.parent; }
+            chain.reverse();
+            console.log(`[MOTION] 3d_face runtime parent chain:`, chain.join(' → '));
+          }
+
+          setTimeout(() => {
+            const bodyHead = costumeRoot.getObjectByName(costumeBodyPrefix + '_Head');
+            const faceHead = costumeRoot.getObjectByName(costumeFacePrefix + '_Head');
+            const bodyHips = costumeRoot.getObjectByName(costumeBodyPrefix + '_Hips');
+            if (bodyHead && faceHead) {
+              bodyHead.updateWorldMatrix(true, false);
+              faceHead.updateWorldMatrix(true, false);
+              const bw = bodyHead.matrixWorld.elements;
+              const fw = faceHead.matrixWorld.elements;
+              console.log(`[MOTION] Body ${bodyHead.name} worldPos: [${bw[12].toFixed(3)},${bw[13].toFixed(3)},${bw[14].toFixed(3)}]`);
+              console.log(`[MOTION] Face ${faceHead.name} worldPos: [${fw[12].toFixed(3)},${fw[13].toFixed(3)},${fw[14].toFixed(3)}]`);
+              console.log(`[MOTION] Diff: [${(bw[12]-fw[12]).toFixed(3)},${(bw[13]-fw[13]).toFixed(3)},${(bw[14]-fw[14]).toFixed(3)}]`);
+              if (bodyHips) {
+                bodyHips.updateWorldMatrix(true, false);
+                const hw = bodyHips.matrixWorld.elements;
+                console.log(`[MOTION] Hips worldPos: [${hw[12].toFixed(3)},${hw[13].toFixed(3)},${hw[14].toFixed(3)}]`);
+              }
+            }
+          }, 1000);
 
           const loop = clips.find(c => c.name.endsWith('@l')) || clips[0];
           if (loop) {
