@@ -5,6 +5,7 @@ import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { Viewport } from './Viewport';
 import { CharacterModel, type CharacterModelHandle } from './CharacterModel';
+import { createToonMaterial } from './ToonMaterial';
 import type { Asset3D } from '~/pages/model-viewer/+data';
 import { get3dAssetUrl } from '~/utils/assets';
 
@@ -473,6 +474,32 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
             ))}
             <Button size="xs" variant={showGrid ? 'solid' : 'outline'} onClick={() => setShowGrid(!showGrid)}>
               Grid
+            </Button>
+          </HStack>
+        </Stack>
+
+        <Stack gap="2">
+          <Text fontWeight="semibold" fontSize="sm">Shader</Text>
+          <HStack gap="2" flexWrap="wrap">
+            <Button size="xs" variant="outline" onClick={() => {
+              const group = modelRef.current?.group;
+              if (!group) return;
+              group.traverse((child) => {
+                if (!(child instanceof THREE.Mesh)) return;
+                const ud = child.material?.userData;
+                if (!ud?.toonShadowTex) return;
+                if (ud.isToon) {
+                  const flat = new THREE.MeshBasicMaterial({ map: ud.toonMainTex });
+                  flat.userData = { ...ud, isToon: false };
+                  child.material = flat;
+                } else {
+                  const toon = createToonMaterial({ mainTex: ud.toonMainTex, shadowTex: ud.toonShadowTex });
+                  toon.userData = { ...ud, isToon: true };
+                  child.material = toon;
+                }
+              });
+            }}>
+              Toggle Toon
             </Button>
           </HStack>
         </Stack>

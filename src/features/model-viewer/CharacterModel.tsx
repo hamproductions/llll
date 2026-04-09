@@ -132,7 +132,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           ? buildTextureMapFromAssetInfo(textureDir, assetTextureMap)
           : {});
 
-      const HIDDEN_BY_DEFAULT = ['IndoorShoes'];
+      const HIDDEN_BY_DEFAULT: string[] = [];
 
       const texFileIndex = new Map<string, string>();
       if (textureDir && textureFiles) {
@@ -232,13 +232,21 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
             if (shadowTex) {
               shadowTex.wrapS = THREE.RepeatWrapping;
               shadowTex.wrapT = THREE.RepeatWrapping;
-              child.material = createToonMaterial({ mainTex: embeddedMap, shadowTex });
+              const toon = createToonMaterial({ mainTex: embeddedMap, shadowTex });
+              toon.userData = { toonMainTex: embeddedMap, toonShadowTex: shadowTex, isToon: true };
+              child.material = toon;
             } else {
               child.material = new THREE.MeshBasicMaterial({ map: embeddedMap });
             }
           }
           return;
         }
+
+        // v2 path: load textures from files
+        const highlightTex = loadTexFile('highlightmain');
+        const eyeColTex = loadTexFile('eye_col0');
+        const eyeLensTex = loadTexFile('eye_lens');
+
         const dotStripped = meshName.replace(/\.\d{3}$/, '');
         const underscoreNumStripped = meshName.replace(/_\d+$/, '');
         const numStripped = meshName.replace(/\d{3}$/, '');
