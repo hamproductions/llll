@@ -205,14 +205,23 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
     setMotionDefs([]);
     setActiveMotion(null);
     if (selectedAsset?.category !== 'costume') return;
-    const url = get3dAssetUrl('metadata/motions.json');
-    fetch(url)
-      .then(r => r.json())
-      .then((data: Array<{ id: string; description: string | null; count?: number }>) => {
-        const sorted = [...data].sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
-        setMotionDefs(sorted);
-      })
-      .catch(() => {});
+
+    // Load both: metadata (descriptions) + available manifest (what's exported)
+    const metaUrl = get3dAssetUrl('metadata/motions.json');
+    const availUrl = get3dAssetUrl('motions/manifest.json');
+
+    Promise.all([
+      fetch(metaUrl).then(r => r.ok ? r.json() : []),
+      fetch(availUrl).then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([meta, available]: [Array<{ id: string; description: string | null; count?: number }>, string[]]) => {
+      const availSet = new Set(available);
+      // If manifest exists, filter to available only. Otherwise show all from metadata.
+      const list = availSet.size > 0
+        ? meta.filter(m => availSet.has(m.id))
+        : meta;
+      const sorted = list.sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+      setMotionDefs(sorted);
+    }).catch(() => {});
   }, [selectedAsset?.category]);
 
   const defaultCameraMode = useCallback((): CameraMode => {
