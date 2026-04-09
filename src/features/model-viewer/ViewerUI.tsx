@@ -248,16 +248,17 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
         ? sorted.find(m => m.id === motParam || m.description === motParam)
         : sorted.find(m => m.description === '通常立ち');
       if (autoMot) {
+        let retries = 0;
         const tryPlay = () => {
-          if (modelRef.current) {
+          if (modelRef.current?.loadMotionGlb) {
             const motUrl = get3dAssetUrl(`motions/${autoMot.id}.glb`);
             modelRef.current.loadMotionGlb(motUrl);
             setActiveMotion(autoMot.id);
-          } else {
-            setTimeout(tryPlay, 500);
+          } else if (retries++ < 20) {
+            setTimeout(tryPlay, 300);
           }
         };
-        setTimeout(tryPlay, 500);
+        setTimeout(tryPlay, 300);
       }
     }).catch(() => {});
   }, [selectedAsset?.category]);
@@ -268,7 +269,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
     return 'orbit';
   }, [selectedAsset?.category]);
   const [cameraMode, setCameraMode] = useState<CameraMode>(defaultCameraMode());
-  const [showSidebar, setShowSidebar] = useState(true);
 
   useEffect(() => {
     setCameraMode(defaultCameraMode());
@@ -276,12 +276,7 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
 
   return (
     <HStack w="full" h={{ base: 'auto', lg: 'calc(100vh - 64px)' }} minH={{ lg: 'calc(100vh - 64px)' }} gap="0" alignItems="stretch" flexDirection={{ base: 'column', lg: 'row' }}>
-      <Box flex={{ base: 'none', lg: '1' }} position="relative" h={{ base: showSidebar ? '35vh' : '70vh', lg: 'auto' }}>
-        <Box position="absolute" top="3" left="3" zIndex="10" display={{ base: 'block', lg: 'none' }}>
-          <Button size="xs" variant="solid" onClick={() => setShowSidebar(!showSidebar)}>
-            {showSidebar ? 'Expand' : 'Panel'}
-          </Button>
-        </Box>
+      <Box flex={{ base: 'none', lg: '1' }} position="relative" h={{ base: '35vh', lg: 'auto' }}>
         <Viewport bgMode={bgMode} showGrid={showGrid} cameraMode={cameraMode} resetKey={selectedAssetId} fitTarget={selectedAsset?.category !== 'stage' ? fitTarget : null}>
           <Suspense fallback={null}>
             {/* TODO: environment room disabled until scale matching is resolved
@@ -318,9 +313,9 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
         borderColor="border.default"
         overflowY="auto"
         bg="bg.default"
-        display={{ base: showSidebar ? 'flex' : 'none', lg: 'flex' }}
+        display="flex"
         flex={{ base: '1', lg: 'none' }}
-        maxH={{ base: showSidebar ? 'calc(65vh - 64px)' : '0', lg: 'none' }}
+        maxH={{ base: 'calc(65vh - 64px)', lg: 'none' }}
       >
         <Text fontWeight="bold" fontSize="lg">
           {selectedAsset ? getDisplayName(selectedAsset) : 'No model'}
@@ -382,7 +377,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
                 url.searchParams.set('id', asset.id);
                 url.searchParams.delete('mot');
                 window.history.replaceState({}, '', url.toString());
-                if (window.innerWidth < 1024) setShowSidebar(false);
               }}
             >
               <Text fontSize="xs" truncate>{getDisplayName(asset)}</Text>

@@ -352,6 +352,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         });
       };
 
+      console.log(`[MODEL] processScene alreadyProcessed=${alreadyProcessed} sceneId=${scene.id}`);
       if (!alreadyProcessed) {
         applyMaterials(scene);
         processedScenes.current.add(scene);
@@ -378,7 +379,6 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         mixerRef.current?.stopAllAction();
         mixerRef.current = null;
         textureCache.current.clear();
-        processedScenes.current.delete(scene);
       };
     }, [gltf, explicitTextures, textureDir, assetTextureMap]);
 
