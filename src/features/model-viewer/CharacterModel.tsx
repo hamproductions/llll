@@ -344,11 +344,23 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       controllerRef.current = new ExpressionController(scene);
 
 
+      // Stop any running animation before swapping scene
+      mixerRef.current?.stopAllAction();
+      mixerRef.current = null;
+      animClipsRef.current = [];
+
       if (groupRef.current) {
         groupRef.current.clear();
         groupRef.current.add(scene);
       }
       console.groupEnd();
+
+      return () => {
+        // Cleanup on unmount/model switch
+        mixerRef.current?.stopAllAction();
+        mixerRef.current = null;
+        textureCache.current.clear();
+      };
     }, [gltf, explicitTextures, textureDir, assetTextureMap]);
 
 
