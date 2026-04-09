@@ -375,10 +375,10 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       console.groupEnd();
 
       return () => {
-        // Cleanup on unmount/model switch
         mixerRef.current?.stopAllAction();
         mixerRef.current = null;
         textureCache.current.clear();
+        processedScenes.current.delete(scene);
       };
     }, [gltf, explicitTextures, textureDir, assetTextureMap]);
 

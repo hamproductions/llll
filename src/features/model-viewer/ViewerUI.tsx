@@ -361,7 +361,7 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
         />
 
         {/* Model list */}
-        <Stack gap="1" maxH="300px" overflowY="auto">
+        <Stack gap="1" maxH={{ base: '40vh', lg: '300px' }} minH="150px" overflowY="auto">
           {filteredAssets.length === 0 && (
             <Text fontSize="sm" color="fg.muted">No models found</Text>
           )}
@@ -447,18 +447,6 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
           </Stack>
         )}
 
-        {selectedAsset?.category === 'costume' && (
-          <Stack gap="2">
-            <Text fontWeight="semibold" fontSize="sm">Pose</Text>
-            <HStack gap="2" flexWrap="wrap">
-              {(['tpose', 'apose', 'soipo'] as const).map((pose) => (
-                <Button key={pose} size="xs" variant="outline" onClick={() => modelRef.current?.setPose(pose)}>
-                  {{ tpose: 'T-Pose', apose: 'A-Pose', soipo: 'ソイポ' }[pose]}
-                </Button>
-              ))}
-            </HStack>
-          </Stack>
-        )}
 
 
         {motionDefs.length > 0 && selectedAsset?.category === 'costume' && (
