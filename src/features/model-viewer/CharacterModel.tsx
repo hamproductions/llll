@@ -96,8 +96,11 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       return tex;
     };
 
+    const processedScenes = useRef(new WeakSet<THREE.Group>());
+
     useEffect(() => {
       const scene = gltf.scene;
+      const alreadyProcessed = processedScenes.current.has(scene);
 
       // ── Debug: dump scene info ──
       const meshes: string[] = [];
@@ -339,7 +342,10 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         });
       };
 
-      applyMaterials(scene);
+      if (!alreadyProcessed) {
+        applyMaterials(scene);
+        processedScenes.current.add(scene);
+      }
       applyScene(scene);
       controllerRef.current = new ExpressionController(scene);
 
