@@ -352,28 +352,17 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         });
       };
 
-      // Only process materials for character models (has skinned meshes)
-      // Stages/props keep original GLTFLoader materials
-      let hasSkinned = false;
-      scene.traverse((c: any) => { if (c.isSkinnedMesh) hasSkinned = true; });
-
-      if (hasSkinned && !alreadyProcessed) {
+      console.log(`[MODEL] processScene alreadyProcessed=${alreadyProcessed} sceneId=${scene.id}`);
+      if (!alreadyProcessed) {
         applyMaterials(scene);
         processedScenes.current.add(scene);
-        controllerRef.current = new ExpressionController(scene);
-      } else if (!hasSkinned) {
-        // Stages/props: fix metalness (Unity exports metalness=1 which looks grey)
-        scene.traverse((c: any) => {
-          if (c.isMesh && c.material) {
-            const mats = Array.isArray(c.material) ? c.material : [c.material];
-            mats.forEach((m: any) => {
-              if (m.metalness !== undefined) m.metalness = 0;
-              if (m.roughness !== undefined) m.roughness = 1;
-            });
-          }
-        });
       }
       applyScene(scene);
+
+      controllerRef.current = new ExpressionController(scene);
+      const _dm: Record<string, any> = {};
+      scene.traverse((c: any) => { if (c.isSkinnedMesh) _dm[c.name] = c; if (c.isBone) _dm['bone_'+c.name] = c; });
+      (window as any).__debugMeshes = _dm;
 
       // Stop any running animation before swapping scene
       mixerRef.current?.stopAllAction();
