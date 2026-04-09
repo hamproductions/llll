@@ -228,15 +228,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
             // Shadow texture is in occlusionMap (smuggled via _OcclusionMap slot)
             const stdMat = mats[0] as THREE.MeshStandardMaterial;
-            let shadowTex: THREE.Texture | null = stdMat.aoMap;
-
-            // Fallback: find external col1 file by material name (e.g. "Foo_MT" → "Foo_col1.png")
-            if (!shadowTex && textureFiles && textureDir) {
-              const matBase = origMatName.replace(/_MT$/, '');
-              const col1File = textureFiles.find(f => f.startsWith(matBase) && f.includes('col1'));
-              if (col1File) shadowTex = loadTex(`${dir}${col1File}`);
-            }
-
+            const shadowTex = stdMat.aoMap;
             if (shadowTex) {
               shadowTex.wrapS = THREE.RepeatWrapping;
               shadowTex.wrapT = THREE.RepeatWrapping;
@@ -357,11 +349,8 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         processedScenes.current.add(scene);
       }
       applyScene(scene);
-
       controllerRef.current = new ExpressionController(scene);
-      const _dm: Record<string, any> = {};
-      scene.traverse((c: any) => { if (c.isSkinnedMesh) _dm[c.name] = c; if (c.isBone) _dm['bone_'+c.name] = c; });
-      (window as any).__debugMeshes = _dm;
+
 
       // Stop any running animation before swapping scene
       mixerRef.current?.stopAllAction();
@@ -436,16 +425,13 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           mixerRef.current?.stopAllAction();
 
           // Build suffix→costumeBoneName map for retargeting
-          // Prefer longer bone names (body bones like RurUsA_Head over face bones like Rur_Head)
           const costumeBoneMap = new Map<string, string>();
           costumeRoot.traverse(n => {
             if ((n as any).isBone) {
+              // Strip prefix: KahLtA_Hips → _Hips, IzuDeA_LArm → _LArm
               const underscoreIdx = n.name.indexOf('_');
               if (underscoreIdx > 0) {
-                const suffix = n.name.substring(underscoreIdx);
-                const existing = costumeBoneMap.get(suffix);
-                if (!existing || n.name.length > existing.length)
-                  costumeBoneMap.set(suffix, n.name);
+                costumeBoneMap.set(n.name.substring(underscoreIdx), n.name);
               }
               costumeBoneMap.set(n.name, n.name);
             }
@@ -453,27 +439,24 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
           // Retarget animation tracks to match costume bone names
           const clips = motionGltf.animations.map(clip => {
-            const tracks: THREE.KeyframeTrack[] = [];
-            for (const track of clip.tracks) {
+            const tracks = clip.tracks.map(track => {
               const [nodeName, ...propParts] = track.name.split('.');
               const prop = '.' + propParts.join('.');
 
-              if (costumeBoneMap.has(nodeName)) {
-                tracks.push(track);
-                continue;
-              }
+              // Try exact match first
+              if (costumeBoneMap.has(nodeName)) return track;
 
+              // Try suffix match: KahDeA_Hips → _Hips → lookup → KahLtA_Hips
               const underscoreIdx = nodeName.indexOf('_');
               if (underscoreIdx > 0) {
                 const suffix = nodeName.substring(underscoreIdx);
                 const mapped = costumeBoneMap.get(suffix);
                 if (mapped) {
-                  tracks.push(new (track.constructor as any)(`${mapped}${prop}`, track.times, track.values));
-                  continue;
+                  return new (track.constructor as any)(`${mapped}${prop}`, track.times, track.values);
                 }
               }
-              // Drop unmapped tracks — bone doesn't exist in costume skeleton
-            }
+              return track;
+            });
             return new THREE.AnimationClip(clip.name, clip.duration, tracks);
           });
 
@@ -481,8 +464,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           mixerRef.current = mixer;
           animClipsRef.current = clips;
 
-
-          const loop = clips.find(c => c.name.endsWith('@l')) || clips[0];
+          const loop = motionGltf.animations.find(c => c.name.endsWith('@l')) || motionGltf.animations[0];
           if (loop) {
             console.log(`[MOTION] Playing: ${loop.name} (${loop.tracks.length} tracks, ${loop.duration.toFixed(1)}s)`);
             mixer.clipAction(loop).play();
