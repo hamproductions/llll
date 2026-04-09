@@ -92,10 +92,30 @@ function EnvironmentRoom() {
   );
 }
 
+function getInitialAssetId(assets: Asset3D[]): string {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id && assets.find(a => a.id === id)) return id;
+    const search = params.get('q');
+    if (search) {
+      const q = search.toLowerCase();
+      const match = assets.find(a =>
+        a.label.toLowerCase().includes(q) ||
+        (a.metadata.characterName && String(a.metadata.characterName).toLowerCase().includes(q)) ||
+        (a.metadata.costumeName && String(a.metadata.costumeName).toLowerCase().includes(q))
+      );
+      if (match) return match.id;
+    }
+  }
+  const kaho = assets.find(a => a.id === '3d_costume_1001103101');
+  return kaho?.id ?? assets[0]?.id ?? '';
+}
+
 export function ViewerUI({ assets, categories }: ViewerUIProps) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAssetId, setSelectedAssetId] = useState(assets[0]?.id ?? '');
+  const [selectedAssetId, setSelectedAssetId] = useState(() => getInitialAssetId(assets));
   const [bgMode, setBgMode] = useState<BgMode>('dark');
   const [showGrid, setShowGrid] = useState(true);
   const modelRef = useRef<CharacterModelHandle>(null);
@@ -215,12 +235,30 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
       fetch(availUrl).then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([meta, available]: [Array<{ id: string; description: string | null; count?: number }>, string[]]) => {
       const availSet = new Set(available);
-      // If manifest exists, filter to available only. Otherwise show all from metadata.
       const list = availSet.size > 0
         ? meta.filter(m => availSet.has(m.id))
         : meta;
       const sorted = list.sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
       setMotionDefs(sorted);
+
+      // Auto-play motion from URL param or default to 通常立ち
+      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const motParam = params?.get('mot');
+      const autoMot = motParam
+        ? sorted.find(m => m.id === motParam || m.description === motParam)
+        : sorted.find(m => m.description === '通常立ち');
+      if (autoMot) {
+        const tryPlay = () => {
+          if (modelRef.current) {
+            const motUrl = get3dAssetUrl(`motions/${autoMot.id}.glb`);
+            modelRef.current.loadMotionGlb(motUrl);
+            setActiveMotion(autoMot.id);
+          } else {
+            setTimeout(tryPlay, 500);
+          }
+        };
+        setTimeout(tryPlay, 500);
+      }
     }).catch(() => {});
   }, [selectedAsset?.category]);
 
@@ -340,6 +378,10 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
                 setSelectedAssetId(asset.id);
                 setActiveExpressionDef(null);
                 setActiveMotion(null);
+                const url = new URL(window.location.href);
+                url.searchParams.set('id', asset.id);
+                url.searchParams.delete('mot');
+                window.history.replaceState({}, '', url.toString());
                 if (window.innerWidth < 1024) setShowSidebar(false);
               }}
             >
@@ -432,11 +474,13 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
                     if (activeMotion === mot.id) {
                       modelRef.current?.stopAnimation();
                       setActiveMotion(null);
+                      const u = new URL(window.location.href); u.searchParams.delete('mot'); window.history.replaceState({}, '', u.toString());
                       return;
                     }
-                    const url = get3dAssetUrl(`motions/${mot.id}.glb`);
-                    modelRef.current?.loadMotionGlb(url);
+                    const motUrl = get3dAssetUrl(`motions/${mot.id}.glb`);
+                    modelRef.current?.loadMotionGlb(motUrl);
                     setActiveMotion(mot.id);
+                    const u = new URL(window.location.href); u.searchParams.set('mot', mot.id); window.history.replaceState({}, '', u.toString());
                   }}
                 >
                   <Text fontSize="xs" truncate>{mot.description || mot.id}</Text>
