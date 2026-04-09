@@ -481,6 +481,11 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
 
               let targetName = '';
               if (nodeName.startsWith(motionBodyPrefix + '_')) {
+                // Cross-costume: skip hair/physics bones (SP_, Hair) — they're costume-specific
+                const boneSuffix = nodeName.substring(motionBodyPrefix.length + 1);
+                if (motionBodyPrefix !== costumeBodyPrefix && (boneSuffix.startsWith('SP_') || boneSuffix.startsWith('Hair'))) {
+                  continue;
+                }
                 targetName = costumeBodyPrefix + nodeName.substring(motionBodyPrefix.length);
               } else if (nodeName.startsWith(motionFacePrefix + '_')) {
                 // Same costume: animate face bones directly
