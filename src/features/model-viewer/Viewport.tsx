@@ -1,7 +1,11 @@
 import { Suspense, useEffect, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import * as THREE from 'three';
+import { EdgeDetectionShader } from './ToonShader';
 
 type BgMode = 'dark' | 'light' | 'transparent';
 type CameraMode = 'orbit' | 'fps' | 'turntable';
@@ -133,6 +137,70 @@ function SceneBackground({ bgMode }: { bgMode: BgMode }) {
       gl.setClearColor(bgColors[bgMode], 1);
     }
   }, [bgMode, scene, gl]);
+
+  return null;
+}
+
+function ToonOutlines() {
+  const { gl, scene, camera, size } = useThree();
+  const composerRef = useRef<EffectComposer | null>(null);
+  const normalRT = useRef<THREE.WebGLRenderTarget | null>(null);
+  const depthRT = useRef<THREE.WebGLRenderTarget | null>(null);
+  const normalMat = useRef(new THREE.MeshNormalMaterial());
+
+  useEffect(() => {
+    const pr = gl.getPixelRatio();
+    const w = size.width * pr;
+    const h = size.height * pr;
+
+    normalRT.current = new THREE.WebGLRenderTarget(w, h);
+    normalRT.current.texture.minFilter = THREE.NearestFilter;
+    normalRT.current.texture.magFilter = THREE.NearestFilter;
+
+    depthRT.current = new THREE.WebGLRenderTarget(w, h);
+    depthRT.current.texture.minFilter = THREE.NearestFilter;
+    depthRT.current.texture.magFilter = THREE.NearestFilter;
+    depthRT.current.depthTexture = new THREE.DepthTexture(w, h);
+    depthRT.current.depthTexture.type = THREE.UnsignedShortType;
+
+    const composer = new EffectComposer(gl);
+    composer.addPass(new RenderPass(scene, camera));
+
+    const edgePass = new ShaderPass(EdgeDetectionShader);
+    edgePass.uniforms['resolution'].value.set(w, h);
+    edgePass.uniforms['tNormal'].value = normalRT.current.texture;
+    edgePass.uniforms['tDepth'].value = depthRT.current.depthTexture;
+    edgePass.uniforms['outlineThickness'].value = 1.0;
+    edgePass.uniforms['cameraNear'].value = (camera as THREE.PerspectiveCamera).near;
+    edgePass.uniforms['cameraFar'].value = (camera as THREE.PerspectiveCamera).far;
+    composer.addPass(edgePass);
+
+    composerRef.current = composer;
+
+    return () => {
+      normalRT.current?.dispose();
+      depthRT.current?.dispose();
+      composer.dispose();
+    };
+  }, [gl, scene, camera, size]);
+
+  useFrame(() => {
+    if (!composerRef.current || !normalRT.current || !depthRT.current) return;
+
+    // Render normals
+    scene.overrideMaterial = normalMat.current;
+    gl.setRenderTarget(normalRT.current);
+    gl.render(scene, camera);
+
+    // Render depth
+    scene.overrideMaterial = null;
+    gl.setRenderTarget(depthRT.current);
+    gl.render(scene, camera);
+
+    // Composite
+    gl.setRenderTarget(null);
+    composerRef.current.render();
+  }, 1);
 
   return null;
 }

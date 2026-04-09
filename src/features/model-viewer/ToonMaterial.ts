@@ -5,56 +5,89 @@ export interface ToonMaterialParams {
   shadowTex?: THREE.Texture | null;
 }
 
-const gradientData = new Uint8Array([0, 255]);
-const defaultGradient = new THREE.DataTexture(gradientData, 2, 1, THREE.RedFormat);
-defaultGradient.needsUpdate = true;
-defaultGradient.minFilter = THREE.NearestFilter;
-defaultGradient.magFilter = THREE.NearestFilter;
+const toonVertexShader = `
+#include <common>
+#include <uv_pars_vertex>
+#include <skinning_pars_vertex>
+#include <morphtarget_pars_vertex>
+#include <lights_pars_begin>
 
-export function createToonMaterial(params: ToonMaterialParams = {}): THREE.MeshToonMaterial {
-  const mat = new THREE.MeshToonMaterial({
-    map: params.mainTex,
-    gradientMap: defaultGradient,
+varying vec3 vNormal;
+varying vec3 vViewPosition;
+varying vec2 vUv;
+
+void main() {
+  vUv = uv;
+
+  #include <skinbase_vertex>
+  #include <beginnormal_vertex>
+  #include <morphnormal_vertex>
+  #include <skinnormal_vertex>
+  #include <defaultnormal_vertex>
+
+  vNormal = normalize(transformedNormal);
+
+  #include <begin_vertex>
+  #include <morphtarget_vertex>
+  #include <skinning_vertex>
+  #include <project_vertex>
+
+  vViewPosition = -mvPosition.xyz;
+}
+`;
+
+const toonFragmentShader = `
+#include <common>
+#include <lights_pars_begin>
+
+uniform sampler2D uMainTex;
+uniform sampler2D uShadowTex;
+uniform float uThreshold;
+uniform float uSmoothness;
+
+varying vec3 vNormal;
+varying vec3 vViewPosition;
+varying vec2 vUv;
+
+void main() {
+  vec3 normal = normalize(vNormal);
+
+  vec4 col0 = texture2D(uMainTex, vUv);
+  vec4 col1 = texture2D(uShadowTex, vUv);
+
+  // Use first directional light
+  vec3 lightDir = normalize(directionalLights[0].direction);
+  float NdotL = dot(normal, lightDir);
+
+  float diff = smoothstep(uThreshold - uSmoothness, uThreshold + uSmoothness, NdotL);
+  vec3 finalColor = mix(col1.rgb, col0.rgb, diff);
+
+  gl_FragColor = vec4(finalColor, col0.a);
+}
+`;
+
+export function createToonMaterial(params: ToonMaterialParams = {}): THREE.ShaderMaterial {
+  const mainTex = params.mainTex;
+  const shadowTex = params.shadowTex || params.mainTex;
+
+  const uniforms = THREE.UniformsUtils.merge([
+    THREE.UniformsLib.lights,
+    {
+      uMainTex: { value: mainTex },
+      uShadowTex: { value: shadowTex },
+      uThreshold: { value: 0.5 },
+      uSmoothness: { value: 0.01 },
+    }
+  ]);
+
+  return new THREE.ShaderMaterial({
+    vertexShader: toonVertexShader,
+    fragmentShader: toonFragmentShader,
+    uniforms,
+    lights: true,
     side: THREE.FrontSide,
     transparent: true,
   });
-
-  const shadowTex = params.shadowTex;
-  if (shadowTex && shadowTex !== params.mainTex) {
-    mat.onBeforeCompile = (shader) => {
-      shader.uniforms.u_shadowTex = { value: shadowTex };
-
-      shader.fragmentShader = shader.fragmentShader.replace(
-        'uniform vec3 diffuse;',
-        `uniform vec3 diffuse;
-uniform sampler2D u_shadowTex;`
-      );
-
-      shader.fragmentShader = shader.fragmentShader.replace(
-        'vec4 diffuseColor = vec4( diffuse, opacity );',
-        `vec4 diffuseColor = vec4( diffuse, opacity );
-vec4 _col0 = texture2D( map, vMapUv );
-vec4 _col1 = texture2D( u_shadowTex, vMapUv );`
-      );
-
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <lights_toon_fragment>',
-        `#include <lights_toon_fragment>
-
-{
-  vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
-  float NdotL = dot(nonPerturbedNormal, lightDir) * 0.5 + 0.5;
-  float toonStep = smoothstep(0.38, 0.42, NdotL);
-  vec3 litColor = _col0.rgb;
-  vec3 shadColor = _col1.rgb;
-  reflectedLight.directDiffuse = mix(shadColor, litColor, toonStep);
-}
-`
-      );
-    };
-  }
-
-  return mat;
 }
 
 export function createOutlineMaterial(): THREE.MeshBasicMaterial {
