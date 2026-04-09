@@ -359,7 +359,9 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
       applyScene(scene);
 
       controllerRef.current = new ExpressionController(scene);
-
+      const _dm: Record<string, any> = {};
+      scene.traverse((c: any) => { if (c.isSkinnedMesh) _dm[c.name] = c; if (c.isBone) _dm['bone_'+c.name] = c; });
+      (window as any).__debugMeshes = _dm;
 
       // Stop any running animation before swapping scene
       mixerRef.current?.stopAllAction();
@@ -434,12 +436,16 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           mixerRef.current?.stopAllAction();
 
           // Build suffix→costumeBoneName map for retargeting
+          // Prefer longer bone names (body bones like RurUsA_Head over face bones like Rur_Head)
           const costumeBoneMap = new Map<string, string>();
           costumeRoot.traverse(n => {
             if ((n as any).isBone) {
               const underscoreIdx = n.name.indexOf('_');
               if (underscoreIdx > 0) {
-                costumeBoneMap.set(n.name.substring(underscoreIdx), n.name);
+                const suffix = n.name.substring(underscoreIdx);
+                const existing = costumeBoneMap.get(suffix);
+                if (!existing || n.name.length > existing.length)
+                  costumeBoneMap.set(suffix, n.name);
               }
               costumeBoneMap.set(n.name, n.name);
             }

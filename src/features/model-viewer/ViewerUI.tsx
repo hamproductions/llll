@@ -460,6 +460,7 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
           </Stack>
         )}
 
+
         {motionDefs.length > 0 && selectedAsset?.category === 'costume' && (
           <Stack gap="2">
             <Text fontWeight="semibold" fontSize="sm">Motion ({motionDefs.length})</Text>
