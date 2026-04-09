@@ -210,7 +210,7 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
       .then(r => r.json())
       .then((data: Array<{ id: string; description: string | null; count?: number }>) => {
         const sorted = [...data].sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
-        setMotionDefs(sorted.slice(0, 50));
+        setMotionDefs(sorted);
       })
       .catch(() => {});
   }, [selectedAsset?.category]);
