@@ -161,10 +161,7 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
         return file && textureDir ? loadTex(`${dir}${file}`) : null;
       };
 
-      const highlightTex = loadTexFile('highlightmain');
-      const eyeColTex = loadTexFile('eye_col0');
-      const eyeLensTex = loadTexFile('eye_lens');
-      console.log(`[EYE] highlight=${!!highlightTex} eyeCol=${!!eyeColTex} lens=${!!eyeLensTex} textureFiles=${textureFiles?.length ?? 0}`);
+      // v3: all textures embedded in GLB — no file fetches needed
 
       const hasExternalTextures = Object.keys(textures).length > 0;
       console.log(`External texture map: ${hasExternalTextures ? Object.keys(textures).length + ' entries' : 'NONE (using GLB materials)'}`);
@@ -183,16 +180,20 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
           const mats = Array.isArray(child.material) ? child.material : [child.material];
           const embeddedMap = (mats[0] as THREE.MeshStandardMaterial)?.map;
 
-          // Eye highlight layer
+          // Eye highlight layer — texture embedded in GLB
           if (origMatName.includes('EyeHi') || origMatName.includes('Highlight')) {
+            const hlMap = embeddedMap;
             child.material = new THREE.MeshBasicMaterial({
-              map: highlightTex || embeddedMap, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+              map: hlMap, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
             });
             child.renderOrder = 2;
-            if (eyeLensTex) {
+            // Lens: check aoMap (embedded) or fallback to file
+            const stdMat = mats[0] as THREE.MeshStandardMaterial;
+            const lensMap = stdMat?.aoMap;
+            if (lensMap) {
               const lensMesh = child.clone();
               lensMesh.material = new THREE.MeshBasicMaterial({
-                map: eyeLensTex, transparent: true, blending: THREE.AdditiveBlending, opacity: 0.6, depthWrite: false,
+                map: lensMap, transparent: true, blending: THREE.AdditiveBlending, opacity: 0.6, depthWrite: false,
               });
               lensMesh.renderOrder = 3;
               child.parent?.add(lensMesh);
