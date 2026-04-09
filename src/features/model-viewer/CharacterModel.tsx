@@ -220,24 +220,17 @@ export const CharacterModel = forwardRef<CharacterModelHandle, CharacterModelPro
             return;
           }
 
-          // Everything else: try toon shader if shadow texture available
+          // Everything else: toon shader with embedded textures
           if (embeddedMap) {
             embeddedMap.wrapS = THREE.RepeatWrapping;
             embeddedMap.wrapT = THREE.RepeatWrapping;
-            // Try to find shadow texture: col0 → col1
-            const texName = embeddedMap.name || origMatName;
-            const shadowFile = textureFiles?.find(f => {
-              const fl = f.toLowerCase();
-              // Match col1 for the same mesh/material
-              if (!fl.includes('_col1')) return false;
-              // Extract the base name from the material name or texture name
-              const matBase = origMatName.replace('_MT', '').toLowerCase();
-              const fileBase = fl.replace('_col1.png', '');
-              return fileBase.includes(matBase) || matBase.includes(fileBase);
-            });
-            const shadowTex = shadowFile && textureDir ? loadTex(`${dir}${shadowFile}`) : null;
 
+            // Shadow texture is in occlusionMap (smuggled via _OcclusionMap slot)
+            const stdMat = mats[0] as THREE.MeshStandardMaterial;
+            const shadowTex = stdMat.aoMap;
             if (shadowTex) {
+              shadowTex.wrapS = THREE.RepeatWrapping;
+              shadowTex.wrapT = THREE.RepeatWrapping;
               child.material = createToonMaterial({ mainTex: embeddedMap, shadowTex });
             } else {
               child.material = new THREE.MeshBasicMaterial({ map: embeddedMap });
