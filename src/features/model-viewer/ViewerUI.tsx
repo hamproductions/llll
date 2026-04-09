@@ -207,8 +207,9 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
     const url = get3dAssetUrl('metadata/motions.json');
     fetch(url)
       .then(r => r.json())
-      .then((data: Array<{ id: string; description: string | null }>) => {
-        setMotionDefs(data.slice(0, 50));
+      .then((data: Array<{ id: string; description: string | null; count?: number }>) => {
+        const sorted = [...data].sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+        setMotionDefs(sorted.slice(0, 50));
       })
       .catch(() => {});
   }, [selectedAsset?.category]);
@@ -316,7 +317,7 @@ export function ViewerUI({ assets, categories }: ViewerUIProps) {
           {filteredAssets.length === 0 && (
             <Text fontSize="sm" color="fg.muted">No models found</Text>
           )}
-          {filteredAssets.map((asset) => (
+          {[...filteredAssets].sort((a, b) => a.category.localeCompare(b.category) || a.id.localeCompare(b.id)).map((asset) => (
             <Button
               key={asset.id}
               size="xs"
