@@ -37,11 +37,19 @@ export const getAssetUrl = (path: string) => {
 
   return join(localBaseUrl, path);
 };
+
+export const getAppAssetUrl = (assetPath: string) =>
+  getAppDataUrl(...assetPath.split('/')) ?? getAssetUrl(assetPath);
+
 export const get3dAssetUrl = (assetPath: string) =>
   getAppDataUrl('3d', assetPath) ?? getAssetUrl(join('3d', assetPath));
 
 export const getSpineAssetUrl = (assetPath: string) =>
   getAppDataUrl('spine', assetPath) ?? getAssetUrl(join('spine', assetPath));
+
+export const getCharacterVoiceUrl = (characterId: number, fileName: string) =>
+  getRootDataUrl('characters', String(characterId), 'voice', `${fileName}.webm`) ??
+  getAssetUrl(join(`characters/${characterId}/voice`, `${fileName}.webm`));
 
 export const getPicUrl = (
   id: string,
@@ -72,6 +80,37 @@ export const getPicUrl = (
 
 export const getAlbumArtPublicPath = (songId: number | string): string => {
   return getAssetUrl(join('album-art', `image_music_thumbnail_${songId}.webp`));
+};
+
+export const getChoreographyUrl = (musicId: number | string): string => {
+  const file = `${musicId}.json`;
+  return getAppDataUrl('live', 'choreography', file) ?? getAssetUrl(join('live', 'choreography', file));
+};
+
+export const getLiveStageBgUrl = (stageId: number | string): string => {
+  const file = `live_stage_image_${stageId}.webp`;
+  return getAppDataUrl('live', 'stages', file) ?? getAssetUrl(join('live', 'stages', file));
+};
+
+// The real in-game SD rhythm-live backdrop: portrait 512x1024 with wall + parquet floor painted in.
+export const getQuestBgUrl = (bgId: number | string): string => {
+  const file = `${bgId}.webp`;
+  return getAppDataUrl('live', 'quest-bg', file) ?? getAssetUrl(join('live', 'quest-bg', file));
+};
+
+export const getSpineTimelineUrl = (family: string, id: string): string => {
+  const file = `${id}.json`;
+  return (
+    getAppDataUrl('live', 'spine-timelines', family, file) ??
+    getAssetUrl(join('live', 'spine-timelines', family, file))
+  );
+};
+
+export const getLiveBackgroundUrl = (bgId: number | string): string => {
+  return (
+    getAppDataUrl('live', 'backgrounds', `image_grade_live_background_${bgId}.webp`) ??
+    getAssetUrl(join('live', 'backgrounds', `image_grade_live_background_${bgId}.webp`))
+  );
 };
 
 export const getMusicTrackUrl = (soundId: number | string): string => {

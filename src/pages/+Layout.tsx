@@ -4,7 +4,7 @@ import { Box, HStack, Stack, styled } from 'styled-system/jsx';
 import {
   FaCompactDisc, FaImages, FaMusic, FaPeopleGroup, FaStar,
   FaGift, FaFaceGrinWink, FaDownload, FaHeadphones, FaTrophy,
-  FaBoxOpen, FaBars, FaCube, FaBone, FaPhotoFilm
+  FaBoxOpen, FaBars, FaCube, FaBone, FaPhotoFilm, FaUsersRectangle, FaTableList, FaLayerGroup, FaBookOpen
 } from 'react-icons/fa6';
 import { ColorModeToggle } from '~/components/layout/ColorModeToggle';
 import { Footer } from '~/components/layout/Footer';
@@ -25,10 +25,16 @@ const NAV_ITEMS = [
   { href: '/bgm', key: 'bgm', icon: FaHeadphones },
   { href: '/grand-prix', key: 'grand_prix', icon: FaTrophy },
   { href: '/items', key: 'items', icon: FaBoxOpen },
+  { href: '/ui-assets', key: 'ui_assets', icon: FaLayerGroup },
+  { href: '/comics', key: 'comics', icon: FaBookOpen },
+  { href: '/visual-assets', key: 'visual_assets', icon: FaImages },
+  { href: '/bundles', key: 'bundles', icon: FaTableList },
   { href: '/emoji', key: 'emoji', icon: FaFaceGrinWink },
   { href: '/gallery', key: 'gallery', icon: FaPhotoFilm },
   { href: '/model-viewer', key: 'viewer', icon: FaCube },
   { href: '/spine-viewer', key: 'spine_viewer', icon: FaBone },
+  { href: '/live-stage', key: 'live_stage', icon: FaUsersRectangle },
+  { href: '/spine-timelines', key: 'spine_timelines', icon: FaBone },
 ];
 
 function NavLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ComponentType; active: boolean }) {
